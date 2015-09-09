@@ -1,0 +1,35 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.lo
+*.slo
+*.so
+
+*.a
+*.la
+*.lai
+
+*.dylib
+
+*.exe
+*.dll
+
+# Directories
+/.deps/
+/libs/
+/.crystal/
+/doc/
+
+# Libraries don't need dependency lock
+# Dependencies will be locked in application that uses them
+/.deps.lock
+
+# Backup files, etc.
+*~
+.*.swp
+*.orig
+core
+
+# Take care of MacOS weirdness; for potential contributors using it
+.DS_Store
+._*
+
