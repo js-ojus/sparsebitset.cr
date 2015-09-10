@@ -113,6 +113,8 @@ module SparseBitSet
 	class SparseBitSet
 		include Iterable
 
+		@set :: Array(Block)
+
 		def initialize
 			@set = Array(Block).new()
 		end
@@ -122,7 +124,7 @@ module SparseBitSet
 		end
 
 		# set sets the bit at the given position.
-		def set(n : UInt64) : Nil
+		def set(n : UInt64) : SparseBitSet
 			off, bit = off_bit(n)
 
 			idx = nil
@@ -130,7 +132,7 @@ module SparseBitSet
 				if el.offset == off
 					el.set(bit)
 					@set[i] = el
-					return nil
+					return self
 				end
 				if el.offset > off
 					idx = i
@@ -143,32 +145,32 @@ module SparseBitSet
 			else
 				@set.push(Block.new(off, bit))
 			end
-			return nil
+			self
 		end
 
 		# clear resets the bit at the given position.
-		def clear(n : UInt64) : Nil
+		def clear(n : UInt64) : SparseBitSet
 			off, bit = off_bit(n)
 
 			idx = @set.index {|el| el.offset == off}
-			return nil if !idx
+			return self if !idx
 
 			@set[idx].clear(bit)
 			if @set[idx].bits == 0
 				@set.delete(idx)
 			end
-			return nil
+			self
 		end
 
 		# flip inverts the bit at the given position.
-		def flip(n : UInt64) : Nil
+		def flip(n : UInt64) : SparseBitSet
 			off, bit = off_bit(n)
 
 			idx = @set.index {|el| el.offset == off}
-			return nil if !idx
+			return self if !idx
 
 			@set[idx].flip(bit)
-			return nil
+			self
 		end
 
 		# test answers `true` if the bit at the given position is set; `false`
@@ -191,6 +193,218 @@ module SparseBitSet
 		#   end
 		def each
 			SbsIterator.new(@set)
+		end
+
+		# clear_all resets this bitset.
+		def clear_all() : SparseBitSet
+			@set.clear
+			self
+		end
+
+		# clone answers a copy of this bitset.
+		def clone() : SparseBitSet
+			bs = SparseBitSet.new()
+			bs.set.concat(@set)
+			bs
+		end
+
+		# length answers the number of bits set.
+		def length() : UInt64
+			popcountSet(@set)
+		end
+
+		# `==` answers `true` iff the given bitset has the same bits set as
+		# those of this bitset.
+		def ==(other : SparseBitSet) : Bool
+			return false if other.nil?
+			return false if @set.length != other.set.length
+			return true if @set.length == 0
+
+			@set.each_with_index do |el, i|
+				oel = other.set[i]
+				return false if el.offset != oel.offset || el.bits != oel.bits
+			end
+			true
+		end
+
+		# prune removes empty blocks from this bitset.
+		def prune()
+			@set.delete_if {|el| el.bits == 0}
+		end
+
+		# newSetOp generates several user-visible set operations.
+		macro newSetOp(name, params)
+			def {{ name.id }}(other : SparseBitSet) : SparseBitSet | Nil
+				return nil if other.nil?
+
+				res = SparseBitSet.new()
+				i, j = 0, 0
+				while i < @set.length && j < other.set.length
+					sel, oel = @set[i], other.set[j]
+
+					case
+					when sel.offset < oel.offset
+						{% if params[:sfull] %}
+						res.set << sel
+						{% end %}
+						i += 1
+
+					when sel.offset == oel.offset
+						res.set << Block.new(sel.offset, sel.bits {{ params[:op].id }} {{ params[:pre_op].id }}oel.bits)
+						i, j = i+1, j+1
+
+					else
+						{% if params[:ofull] %}
+						res.set << oel
+						{% end %}
+						j += 1
+					end
+				end
+				{% if params[:sfull] %}
+				res.set.concat(@set[i..-1])
+				{% end %}
+				{% if params[:ofull] %}
+				res.set.concat(@set[j..-1])
+				{% end %}
+
+				{% if params[:prune] %}
+				res.prune()
+				{% end %}
+				res
+			end
+		end
+
+		# difference performs a 'set minus' of the given bitset from this
+		# bitset.
+		newSetOp(:difference,
+			{op: "&", pre_op: "~", sfull: true, ofull: false, prune: true})
+
+		# intersection performs a 'set intersection' of the given bitset with
+		# this bitset.
+		newSetOp(:intersection,
+			{op: "&", pre_op: "", sfull: false, ofull: false, prune: true})
+
+		# union performs a 'set union' of the given bitset with this bitset.
+		newSetOp(:union,
+			{op: "|", pre_op: "", sfull: true, ofull: true, prune: false})
+
+		# symmetric_difference performs a 'set symmetric difference' between
+		# the given bitset and this bitset.
+		newSetOp(:symmetric_difference,
+			{op: "^", pre_op: "", sfull: true, ofull: true, prune: true})
+
+
+		# in_place_difference performs an in-place 'set minus' of the given
+		# bitset from this bitset.
+		def in_place_difference(other : SparseBitSet) : SparseBitSet
+			return self if other.nil?
+
+			i, j = 0, 0
+			while i < @set.length && j < other.set.length
+				sel, oel = @set[i], other.set[j]
+
+				case
+				when sel.offset < oel.offset
+					i += 1
+
+				when sel.offset == oel.offset
+					@set[i].bits &= ~oel.bits
+					i, j = i+1, j+1
+
+				else
+					j += 1
+				end
+			end
+
+			prune()
+			self
+		end
+
+		# in_place_intersection performs a 'set intersection' of the given
+		# bitset with this bitset, updating this bitset itself.
+		def in_place_intersection(other : SparseBitSet) : SparseBitSet
+			return self if other.nil?
+
+			i, j = 0, 0
+			while i < @set.length && j < other.set.length
+				sel, oel = @set[i], other.set[j]
+
+				case
+				when sel.offset < oel.offset
+					@set[i].bits = 0
+					i += 1
+
+				when sel.offset == oel.offset
+					@set[i].bits &= oel.bits
+					i, j = i+1, j+1
+
+				else
+					j += 1
+				end
+			end
+			while i < @set.length
+				@set[i].bits = 0
+			end
+
+			prune()
+			self
+		end
+
+		# in_place_union performs a 'set union' of the given bitset with this
+		# bitset, updating this bitset itself.
+		def in_place_union(other : SparseBitSet) : SparseBitSet
+			return self if other.nil?
+
+			i, j = 0, 0
+			loop do
+				break if i >= @set.length || j >= other.set.length
+
+				sel, oel = @set[i], other.set[j]
+
+				case
+				when sel.offset < oel.offset
+					i += 1
+
+				when sel.offset == oel.offset
+					@set[i].bits |= oel.bits
+					i, j = i+1, j+1
+
+				else
+					@set.insert(i, oel)
+					i, j = i+1, j+1
+				end
+			end
+			@set.concat(other.set[j..-1])
+
+			self
+		end
+
+		# in_place_symmetric_difference performs a 'set symmetric difference'
+		# of the given bitset with this bitset, updating this bitset itself.
+		def in_place_symmetric_difference(other : SparseBitSet) : SparseBitSet
+			return self if other.nil?
+
+			i, j = 0, 0
+			while i < @set.length && j < other.set.length
+				sel, oel = @set[i], other.set[j]
+
+				case
+				when sel.offset < oel.offset
+					i += 1
+
+				when sel.offset == oel.offset
+					@set[i].bits ^= oel.bits
+					i, j = i+1, j+1
+
+				else
+					@set.insert(i, oel)
+					j += 1
+				end
+			end
+			@set.concat(other.set[j..-1])
+
+			prune()
+			self
 		end
 	end
 
