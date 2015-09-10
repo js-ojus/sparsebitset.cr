@@ -50,8 +50,28 @@ module SparseBitSet
 		9_u8, 13_u8, 8_u8, 7_u8, 6_u8,]
 
 	# A quick way to find the number of trailing zeroes in the word.
-	def trailing_zeroes_count(v : UInt64) : UInt64
+	private def trailing_zeroes_count(v : UInt64) : UInt64
 		DE_BRUIJN[((v & -v) * 0x03f79d71b4ca8b09) >> 58] as UInt64
+	end
+
+	# popcount answers the number of bits set to `1` in this word.  It uses
+	# the bit population count (Hamming Weight) logic taken from
+	# https://code.google.com/p/go/issues/detail?id=4988#c11.  Original by
+	# 'https://code.google.com/u/arnehormann'.
+	private def popcount(x : UInt64) : UInt64
+		x -= (x >> 1) & 0x5555555555555555
+		x =  ((x >> 2) & 0x3333333333333333) + (x & 0x3333333333333333)
+		x += x >> 4
+		x &= 0x0f0f0f0f0f0f0f0f
+		x *= 0x0101010101010101
+		x >> 56
+	end
+
+	# popcountSet answers the number of bits set to `1` in the given set.
+	private def popcountSet(set : Array(Block)) : UInt64
+		set.inject(0) do |cnt, el|
+			cnt + popcount(el.bits)
+		end
 	end
 
 	# Block is a pair of (offset, bits) capable of holding information for up
@@ -60,8 +80,12 @@ module SparseBitSet
 		@offset :: UInt64
 		@bits :: UInt64
 
-		property offset
-		property bits
+		getter offset
+		getter bits
+
+		def initialize(@offset, @bits)
+			# Intentionally left blank.
+		end
 
 		# set sets the bit at the given position.
 		def set(n : UInt64)
@@ -84,4 +108,76 @@ module SparseBitSet
 		end
 	end
 
+	# SparseBitSet is a compact representation of sparse sets of non-negative
+	# integers.
+	class SparseBitSet
+		def initialize
+			@set = Array(Block).new()
+		end
+
+		private def off_bit(n : UInt64) : Tuple(UInt64, UInt64)
+			return n >> LOG2_WORD_SIZE, n & MOD_WORD_SIZE
+		end
+
+		# set sets the bit at the given position.
+		def set(n : UInt64) : Nil
+			off, bit = off_bit(n)
+
+			idx = nil
+			@set.each_with_index do |el, i|
+				if el.offset == off
+					el.set(bit)
+					@set[i] = el
+					return nil
+				end
+				if el.offset > off
+					idx = i
+					break
+				end
+			end
+
+			if idx
+				@set.insert(idx, Block.new(off, bit))
+			else
+				@set.push(Block.new(off, bit))
+			end
+			return nil
+		end
+
+		# clear resets the bit at the given position.
+		def clear(n : UInt64) : Nil
+			off, bit = off_bit(n)
+
+			idx = @set.index {|el| el.offset == off}
+			return nil if !idx
+
+			@set[idx].clear(bit)
+			if @set[idx].bits == 0
+				@set.delete(idx)
+			end
+			return nil
+		end
+
+		# flip inverts the bit at the given position.
+		def flip(n : UInt64) : Nil
+			off, bit = off_bit(n)
+
+			idx = @set.index {|el| el.offset == off}
+			return nil if !idx
+
+			@set[idx].flip(bit)
+			return nil
+		end
+
+		# test answers `true` if the bit at the given position is set; `false`
+		# otherwise.
+		def test(n : UInt64) : Bool
+			off, bit = off_bit(n)
+
+			idx = @set.index {|el| el.offset == off}
+			return false if !idx
+
+			@set[idx].test(bit)
+		end
+	end
 end
