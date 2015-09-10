@@ -111,6 +111,8 @@ module SparseBitSet
 	# SparseBitSet is a compact representation of sparse sets of non-negative
 	# integers.
 	class SparseBitSet
+		include Iterable
+
 		def initialize
 			@set = Array(Block).new()
 		end
@@ -178,6 +180,53 @@ module SparseBitSet
 			return false if !idx
 
 			@set[idx].test(bit)
+		end
+
+		# each answers an instance of SbsIterator.
+		#
+		# Example usage:
+		#   iter = set.each
+		#   while (idx = iter.next()) != Iterator::Stop::INSTANCE
+		#     ...
+		#   end
+		def each
+			SbsIterator.new(@set)
+		end
+	end
+
+	# SbsIterator provides iteration over a sparse bitset.
+	class SbsIterator
+		include Iterator(UInt64)
+
+		@set :: Array(Block)
+
+		def initialize(@set)
+			@curr = 0
+		end
+
+		# next answers the position of the next bit that is set.  If no such
+		# bit exists, it answers `Iterator::Stop::INSTANCE`.
+		def next()
+			off, rsh = @curr >> LOG2_WORD_SIZE, @curr & MOD_WORD_SIZE
+
+			idx = nil
+			@set.each_with_index do |el, i|
+				if el.offset == off
+					w = el.bits >> rsh
+					return @curr + trailing_zeroes_count(w) if w > 0
+				end
+				if el.offset > off
+					idx = i
+					break
+				end
+			end
+
+			if idx
+				@curr = (@set[idx].offset * WORD_SIZE) + trailing_zeroes_count(@set[idx].bits)
+				@curr
+			else
+				Iterator::Stop::INSTANCE
+			end
 		end
 	end
 end
