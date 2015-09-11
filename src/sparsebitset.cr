@@ -1,29 +1,28 @@
 # (c) Copyright 2015 JONNALAGADDA Srinivas
 #
-# Licensed under the Apache License_u8, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy
+# of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing_u8, software
-# distributed under the License is distributed on an "AS IS" BASIS_u8,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND_u8, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
 
-# Package sparsebitset is a simple implementation of sparse bitsets
-# for non-negative integers.
+# Package sparsebitset is a simple implementation of sparse bitsets for non-
+# negative integers.  This is a port of `github.com/js-ojus/sparsebitset`,
+# which is written in Go (golang).
 #
-# The representation is very simple_u8, and uses a sequence of (offset_u8,
-# bits) pairs.  It is similar to that of Go's
-# `x/tools/container/intsets` and Java's `java.util.BitSet`.
-# However_u8, Go's package caters to negative integers as well_u8, which I
-# do not need.
+# The representation is very simple, and uses a sequence of (offset, bits)
+# pairs.  It is similar to that of Go's `x/tools/container/intsets` and Java's
+# `java.util.BitSet`.
 #
-# The original motivation for `sparsebitset` comes from a need to
-# store custom indexes of documents in a database.  Accordingly_u8,
-# `sparsebitset` trades CPU time for space.
+# The original motivation for `sparsebitset` comes from a need to store custom
+# indexes of documents in a database.  Accordingly, `sparsebitset` trades CPU
+# time for space.
 
 require "./sparsebitset/*"
 
@@ -202,14 +201,14 @@ module SparseBitSet
 		end
 
 		# clone answers a copy of this bitset.
-		def clone() : SparseBitSet
+		def clone : SparseBitSet
 			bs = SparseBitSet.new()
 			bs.set.concat(@set)
 			bs
 		end
 
 		# length answers the number of bits set.
-		def length() : UInt64
+		def length : UInt64
 			popcountSet(@set)
 		end
 
@@ -524,6 +523,80 @@ module SparseBitSet
 
 			c
 		end
+
+		# complement answers a bit-wise complement of this bitset, up to the
+		# highest bit set in this bitset.
+		def complement : SparseBitSet
+			res = SparseBitSet.new()
+			return res if @set.length == 0
+
+			off = 0_u64
+			@set.each do |el|
+				while off < el.offset
+					res.set << Block.new(off, ALL_ONES)
+					off += WORD_SIZE
+				end
+
+				res.set << Block.new(el.offset, ~el.bits)
+				off += WORD_SIZE
+			end
+
+			res.prune()
+			res
+		end
+
+		# all? answers `true` if all the bits in it, up to its highest set
+		# bit, are set; answers `false` otherwise.
+		def all? : Bool
+			return false if @set.length == 0
+
+			off = 0_u64
+			@set[0..-2].each do |el|
+				return false if el.offset != off
+				return false if el.bits != ALL_ONES
+
+				off += WORD_SIZE
+			end
+
+			# Check the last block.
+			w = @set[-1].bits
+			c = popcount(w)
+			w = w >> c
+			return false if w > 0
+			true
+		end
+
+		# empty? answers `true` iff this bitset is empty, `false` otherwise.
+		def empty? : Bool
+			@set.length == 0
+		end
+
+		# none? is an alias for `empty?`.
+		def none? : Bool
+			empty?
+		end
+
+		# any? answers `true` iff this bitset is not empty, `false` otherwise.
+		def any? : Bool
+			!empty?
+		end
+
+		# superset? answers `true` if this bitset includes all of the elements
+		# of the given bitset.
+		def superset?(other : SparseBitSet) : Bool
+			return true if other.nil? || other.empty?
+
+			other.difference_cardinality(self) == 0
+		end
+
+		# strict_superset? answers `true` if this bitset is a superset of the
+		# given bitset, and includes at least one additional element.
+		def strict_superset?(other : SparseBitSet) : Bool
+			return false if @set.length < other.set.length
+			return false if !superset?(other)
+
+			length > other.length
+		end
 	end
 
 	# SbsIterator provides iteration over a sparse bitset.
@@ -538,7 +611,7 @@ module SparseBitSet
 
 		# next answers the position of the next bit that is set.  If no such
 		# bit exists, it answers `Iterator::Stop::INSTANCE`.
-		def next()
+		def next
 			off, rsh = @curr >> LOG2_WORD_SIZE, @curr & MOD_WORD_SIZE
 
 			idx = nil
