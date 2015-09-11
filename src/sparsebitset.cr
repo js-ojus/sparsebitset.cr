@@ -29,9 +29,9 @@ require "./sparsebitset/*"
 module SparseBitSet
 
   # Size of a word in bits.
-  WORD_SIZE = sizeof(UInt64) * 8
+  WORD_SIZE = sizeof(UInt64) * 8_u64
   # (`WORD_SIZE` - 1)
-  MOD_WORD_SIZE = WORD_SIZE - 1
+  MOD_WORD_SIZE = WORD_SIZE - 1_u64
   # Number of bits to right-shift by, to divide by WORD_SIZE.
   LOG2_WORD_SIZE = 6_u64
   # A word with all bits set to `1`.
@@ -50,7 +50,7 @@ module SparseBitSet
 
   # A quick way to find the number of trailing zeroes in the word.
   private def trailing_zeroes_count(v : UInt64) : UInt64
-    DE_BRUIJN[((v & -v) * 0x03f79d71b4ca8b09) >> 58] as UInt64
+    (DE_BRUIJN[(((0_u64-v) & v) * 0x03f79d71b4ca8b09) >> 58]).to_u64
   end
 
   # popcount answers the number of bits set to `1` in this word.  It uses
@@ -68,7 +68,7 @@ module SparseBitSet
 
   # popcountSet answers the number of bits set to `1` in the given set.
   private def popcountSet(set : Array(Block)) : UInt64
-    set.inject(0) do |cnt, el|
+    set.inject(0_u64) do |cnt, el|
      cnt + popcount(el.bits)
    end
   end
@@ -87,29 +87,72 @@ module SparseBitSet
     end
 
     # set sets the bit at the given position.
-    def set(n : UInt64)
-      @bits = @bits | (1 << n)
+    def set(n : UInt64) : Block
+      @bits = @bits | (1_u64 << n)
+      self
     end
 
     # clear resets the bit at the given position.
-    def clear(n : UInt64)
-      @bits = @bits & ~(1 << n)
+    def clear(n : UInt64) : Block
+      @bits = @bits & ~(1_u64 << n)
+      self
     end
 
     # flip inverts the bit at the given position.
-    def flip(n : UInt64)
-      @bits = @bits ^ (1 << n)
+    def flip(n : UInt64) : Block
+      @bits = @bits ^ (1_u64 << n)
+      self
     end
 
     # test checks to see if the bit at the given position is set.
     def test(n : UInt64)
-      @bits & (1 << n) > 0
+      @bits & (1_u64 << n) > 0
     end
   end
 
-  # SparseBitSet is a compact representation of sparse sets of non-negative
+  # SbsIterator provides iteration over a sparse bitset.
+  class SbsIterator
+    include Iterator(UInt64)
+
+    @set :: Array(Block)
+    @curr :: UInt64
+
+    def initialize(@set)
+      @curr = 0_u64
+    end
+
+    # next answers the position of the next bit that is set.  If no such
+    # bit exists, it answers `Iterator::Stop::INSTANCE`.
+    def next
+      off, rsh = @curr >> LOG2_WORD_SIZE, @curr & MOD_WORD_SIZE
+
+      idx = nil
+      @set.each_with_index do |el, i|
+        if el.offset == off
+          w = el.bits >> rsh
+          if w > 0
+            @curr += trailing_zeroes_count(w) + 1
+            return @curr-1
+          end
+        end
+        if el.offset > off
+          idx = i
+          break
+        end
+      end
+
+      if idx
+        @curr = (@set[idx].offset * WORD_SIZE) + trailing_zeroes_count(@set[idx].bits) + 1
+        @curr-1
+      else
+        Iterator::Stop::INSTANCE
+      end
+    end
+  end
+
+  # BitSet is a compact representation of sparse sets of non-negative
   # integers.
-  class SparseBitSet
+  class BitSet
     include Iterable
 
     @set :: Array(Block)
@@ -123,7 +166,7 @@ module SparseBitSet
     end
 
     # set sets the bit at the given position.
-    def set(n : UInt64) : SparseBitSet
+    def set(n : UInt64) : BitSet
       off, bit = off_bit(n)
 
       idx = nil
@@ -139,22 +182,24 @@ module SparseBitSet
         end
       end
 
+      blk = Block.new(off, 0_u64)
+      blk.set(bit)
       if idx
-        @set.insert(idx, Block.new(off, bit))
+        @set.insert(idx, blk)
       else
-        @set.push(Block.new(off, bit))
+        @set.push(blk)
       end
       self
     end
 
     # clear resets the bit at the given position.
-    def clear(n : UInt64) : SparseBitSet
+    def clear(n : UInt64) : BitSet
       off, bit = off_bit(n)
 
       idx = @set.index { |el| el.offset == off }
-      return self if !idx
+      return self unless idx
 
-      @set[idx].clear(bit)
+      @set[idx] = @set[idx].clear(bit)
       if @set[idx].bits == 0
         @set.delete(idx)
       end
@@ -162,13 +207,13 @@ module SparseBitSet
     end
 
     # flip inverts the bit at the given position.
-    def flip(n : UInt64) : SparseBitSet
+    def flip(n : UInt64) : BitSet
       off, bit = off_bit(n)
 
       idx = @set.index { |el| el.offset == off }
-      return self if !idx
+      return self unless idx
 
-      @set[idx].flip(bit)
+      @set[idx] = @set[idx].flip(bit)
       self
     end
 
@@ -178,7 +223,7 @@ module SparseBitSet
       off, bit = off_bit(n)
 
       idx = @set.index { |el| el.offset == off }
-      return false if !idx
+      return false unless idx
 
       @set[idx].test(bit)
     end
@@ -191,18 +236,18 @@ module SparseBitSet
     #     ...
     #   end
     def each
-      SbsIterator.new(@set)
+      SbsIterator.new(@set.clone)
     end
 
     # clear_all resets this bitset.
-    def clear_all() : SparseBitSet
+    def clear_all() : BitSet
       @set.clear
       self
     end
 
     # clone answers a copy of this bitset.
-    def clone : SparseBitSet
-      bs = SparseBitSet.new()
+    def clone : BitSet
+      bs = BitSet.new()
       bs.set.concat(@set)
       bs
     end
@@ -214,7 +259,7 @@ module SparseBitSet
 
     # `==` answers `true` iff the given bitset has the same bits set as
     # those of this bitset.
-    def ==(other : SparseBitSet) : Bool
+    def ==(other : BitSet) : Bool
       return false if other.nil?
       return false if @set.length != other.set.length
       return true if @set.length == 0
@@ -233,10 +278,10 @@ module SparseBitSet
 
     # newSetOp generates several user-visible set operations.
     macro newSetOp(name, params)
-      def {{ name.id }}(other : SparseBitSet) : SparseBitSet | Nil
+      def {{ name.id }}(other : BitSet) : BitSet | Nil
         return nil if other.nil?
 
-        res = SparseBitSet.new()
+        res = BitSet.new()
         i, j = 0, 0
         while i < @set.length && j < other.set.length
           sel, oel = @set[i], other.set[j]
@@ -295,7 +340,7 @@ module SparseBitSet
 
     # difference! performs an in-place 'set minus' of the given bitset
     # from this bitset.
-    def difference!(other : SparseBitSet) : SparseBitSet
+    def difference!(other : BitSet) : BitSet
       return self if other.nil?
 
       i, j = 0, 0
@@ -322,7 +367,7 @@ module SparseBitSet
     # difference_cardinality answers the cardinality of the difference set
     # between this bitset and the given bitset.  This does *not* construct
     # an intermediate bitset.
-    def difference_cardinality(other : SparseBitSet) : UInt64
+    def difference_cardinality(other : BitSet) : UInt64
       return @set.length if other.nil?
 
       c = 0_u64
@@ -350,7 +395,7 @@ module SparseBitSet
 
     # intersection! performs a 'set intersection' of the given bitset with
     # this bitset, updating this bitset itself.
-    def intersection!(other : SparseBitSet) : SparseBitSet
+    def intersection!(other : BitSet) : BitSet
       return self if other.nil?
 
       i, j = 0, 0
@@ -381,7 +426,7 @@ module SparseBitSet
     # intersection_cardinality answers the cardinality of the intersection
     # set between this bitset and the given bitset.  This does *not*
     # construct an intermediate bitset.
-    def intersection_cardinality(other : SparseBitSet) : UInt64
+    def intersection_cardinality(other : BitSet) : UInt64
       return 0 if other.nil?
 
       c = 0_u64
@@ -407,7 +452,7 @@ module SparseBitSet
 
     # union! performs a 'set union' of the given bitset with this bitset,
     # updating this bitset itself.
-    def union!(other : SparseBitSet) : SparseBitSet
+    def union!(other : BitSet) : BitSet
       return self if other.nil?
 
       i, j = 0, 0
@@ -437,7 +482,7 @@ module SparseBitSet
     # union_cardinality answers the cardinality of the union
     # set between this bitset and the given bitset.  This does *not*
     # construct an intermediate bitset.
-    def union_cardinality(other : SparseBitSet) : UInt64
+    def union_cardinality(other : BitSet) : UInt64
       return @set.length if other.nil?
 
       c = 0_u64
@@ -467,7 +512,7 @@ module SparseBitSet
 
     # symmetric_difference! performs a 'set symmetric difference' of the
     # given bitset with this bitset, updating this bitset itself.
-    def symmetric_difference!(other : SparseBitSet) : SparseBitSet
+    def symmetric_difference!(other : BitSet) : BitSet
       return self if other.nil?
 
       i, j = 0, 0
@@ -496,7 +541,7 @@ module SparseBitSet
     # symmetric_difference_cardinality answers the cardinality of the
     # symmetric_difference set between this bitset and the given bitset.
     # This does *not* construct an intermediate bitset.
-    def symmetric_difference_cardinality(other : SparseBitSet) : UInt64
+    def symmetric_difference_cardinality(other : BitSet) : UInt64
       return @set.length if other.nil?
 
       c = 0_u64
@@ -526,8 +571,8 @@ module SparseBitSet
 
     # complement answers a bit-wise complement of this bitset, up to the
     # highest bit set in this bitset.
-    def complement : SparseBitSet
-      res = SparseBitSet.new()
+    def complement : BitSet
+      res = BitSet.new()
       return res if @set.length == 0
 
       off = 0_u64
@@ -583,7 +628,7 @@ module SparseBitSet
 
     # superset? answers `true` if this bitset includes all of the elements
     # of the given bitset.
-    def superset?(other : SparseBitSet) : Bool
+    def superset?(other : BitSet) : Bool
       return true if other.nil? || other.empty?
 
       other.difference_cardinality(self) == 0
@@ -591,47 +636,11 @@ module SparseBitSet
 
     # strict_superset? answers `true` if this bitset is a superset of the
     # given bitset, and includes at least one additional element.
-    def strict_superset?(other : SparseBitSet) : Bool
+    def strict_superset?(other : BitSet) : Bool
       return false if @set.length < other.set.length
       return false if !superset?(other)
 
       length > other.length
-    end
-  end
-
-  # SbsIterator provides iteration over a sparse bitset.
-  class SbsIterator
-    include Iterator(UInt64)
-
-    @set :: Array(Block)
-
-    def initialize(@set)
-      @curr = 0
-    end
-
-    # next answers the position of the next bit that is set.  If no such
-    # bit exists, it answers `Iterator::Stop::INSTANCE`.
-    def next
-      off, rsh = @curr >> LOG2_WORD_SIZE, @curr & MOD_WORD_SIZE
-
-      idx = nil
-      @set.each_with_index do |el, i|
-        if el.offset == off
-          w = el.bits >> rsh
-          return @curr + trailing_zeroes_count(w) if w > 0
-        end
-        if el.offset > off
-          idx = i
-          break
-        end
-      end
-
-      if idx
-        @curr = (@set[idx].offset * WORD_SIZE) + trailing_zeroes_count(@set[idx].bits)
-        @curr
-      else
-        Iterator::Stop::INSTANCE
-      end
     end
   end
 end
