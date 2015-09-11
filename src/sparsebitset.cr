@@ -152,7 +152,7 @@ module SparseBitSet
 		def clear(n : UInt64) : SparseBitSet
 			off, bit = off_bit(n)
 
-			idx = @set.index {|el| el.offset == off}
+			idx = @set.index { |el| el.offset == off }
 			return self if !idx
 
 			@set[idx].clear(bit)
@@ -166,7 +166,7 @@ module SparseBitSet
 		def flip(n : UInt64) : SparseBitSet
 			off, bit = off_bit(n)
 
-			idx = @set.index {|el| el.offset == off}
+			idx = @set.index { |el| el.offset == off }
 			return self if !idx
 
 			@set[idx].flip(bit)
@@ -178,7 +178,7 @@ module SparseBitSet
 		def test(n : UInt64) : Bool
 			off, bit = off_bit(n)
 
-			idx = @set.index {|el| el.offset == off}
+			idx = @set.index { |el| el.offset == off }
 			return false if !idx
 
 			@set[idx].test(bit)
@@ -229,7 +229,7 @@ module SparseBitSet
 
 		# prune removes empty blocks from this bitset.
 		def prune()
-			@set.delete_if {|el| el.bits == 0}
+			@set.delete_if { |el| el.bits == 0 }
 		end
 
 		# newSetOp generates several user-visible set operations.
@@ -294,9 +294,9 @@ module SparseBitSet
 			{op: "^", pre_op: "", sfull: true, ofull: true, prune: true})
 
 
-		# in_place_difference performs an in-place 'set minus' of the given
-		# bitset from this bitset.
-		def in_place_difference(other : SparseBitSet) : SparseBitSet
+		# difference! performs an in-place 'set minus' of the given bitset
+		# from this bitset.
+		def difference!(other : SparseBitSet) : SparseBitSet
 			return self if other.nil?
 
 			i, j = 0, 0
@@ -320,9 +320,38 @@ module SparseBitSet
 			self
 		end
 
-		# in_place_intersection performs a 'set intersection' of the given
-		# bitset with this bitset, updating this bitset itself.
-		def in_place_intersection(other : SparseBitSet) : SparseBitSet
+		# difference_cardinality answers the cardinality of the difference set
+		# between this bitset and the given bitset.  This does *not* construct
+		# an intermediate bitset.
+		def difference_cardinality(other : SparseBitSet) : UInt64
+			return @set.length if other.nil?
+
+			c = 0_u64
+			i, j = 0, 0
+			while i < @set.length && j < other.set.length
+				sel, oel = @set[i], other.set[j]
+
+				case
+				when sel.offset < oel.offset
+					c += popcount(sel.bits)
+					i += 1
+
+				when sel.offset == oel.offset
+					c += popcount(@set[i].bits & ~oel.bits)
+					i, j = i+1, j+1
+
+				else
+					j += 1
+				end
+			end
+			@set[i..-1].each { |el| c+= popcount(el.bits) }
+
+			c
+		end
+
+		# intersection! performs a 'set intersection' of the given bitset with
+		# this bitset, updating this bitset itself.
+		def intersection!(other : SparseBitSet) : SparseBitSet
 			return self if other.nil?
 
 			i, j = 0, 0
@@ -350,9 +379,36 @@ module SparseBitSet
 			self
 		end
 
-		# in_place_union performs a 'set union' of the given bitset with this
-		# bitset, updating this bitset itself.
-		def in_place_union(other : SparseBitSet) : SparseBitSet
+		# intersection_cardinality answers the cardinality of the intersection
+		# set between this bitset and the given bitset.  This does *not*
+		# construct an intermediate bitset.
+		def intersection_cardinality(other : SparseBitSet) : UInt64
+			return 0 if other.nil?
+
+			c = 0_u64
+			i, j = 0, 0
+			while i < @set.length && j < other.set.length
+				sel, oel = @set[i], other.set[j]
+
+				case
+				when sel.offset < oel.offset
+					i += 1
+
+				when sel.offset == oel.offset
+					c += popcount(@set[i].bits & oel.bits)
+					i, j = i+1, j+1
+
+				else
+					j += 1
+				end
+			end
+
+			c
+		end
+
+		# union! performs a 'set union' of the given bitset with this bitset,
+		# updating this bitset itself.
+		def union!(other : SparseBitSet) : SparseBitSet
 			return self if other.nil?
 
 			i, j = 0, 0
@@ -379,9 +435,40 @@ module SparseBitSet
 			self
 		end
 
-		# in_place_symmetric_difference performs a 'set symmetric difference'
-		# of the given bitset with this bitset, updating this bitset itself.
-		def in_place_symmetric_difference(other : SparseBitSet) : SparseBitSet
+		# union_cardinality answers the cardinality of the union
+		# set between this bitset and the given bitset.  This does *not*
+		# construct an intermediate bitset.
+		def union_cardinality(other : SparseBitSet) : UInt64
+			return @set.length if other.nil?
+
+			c = 0_u64
+			i, j = 0, 0
+			while i < @set.length && j < other.set.length
+				sel, oel = @set[i], other.set[j]
+
+				case
+				when sel.offset < oel.offset
+					c += popcount(sel.bits)
+					i += 1
+
+				when sel.offset == oel.offset
+					c += popcount(@set[i].bits | oel.bits)
+					i, j = i+1, j+1
+
+				else
+					c += popcount(oel.bits)
+					j += 1
+				end
+			end
+			@set[i..-1].each { |el| c += popcount(el.bits) }
+			other.set[j..-1].each { |el| c += popcount(el.bits) }
+
+			c
+		end
+
+		# symmetric_difference! performs a 'set symmetric difference' of the
+		# given bitset with this bitset, updating this bitset itself.
+		def symmetric_difference!(other : SparseBitSet) : SparseBitSet
 			return self if other.nil?
 
 			i, j = 0, 0
@@ -405,6 +492,37 @@ module SparseBitSet
 
 			prune()
 			self
+		end
+
+		# symmetric_difference_cardinality answers the cardinality of the
+		# symmetric_difference set between this bitset and the given bitset.
+		# This does *not* construct an intermediate bitset.
+		def symmetric_difference_cardinality(other : SparseBitSet) : UInt64
+			return @set.length if other.nil?
+
+			c = 0_u64
+			i, j = 0, 0
+			while i < @set.length && j < other.set.length
+				sel, oel = @set[i], other.set[j]
+
+				case
+				when sel.offset < oel.offset
+					c += popcount(sel.bits)
+					i += 1
+
+				when sel.offset == oel.offset
+					c += popcount(@set[i].bits ^ oel.bits)
+					i, j = i+1, j+1
+
+				else
+					c += popcount(oel.bits)
+					j += 1
+				end
+			end
+			@set[i..-1].each { |el| c += popcount(el.bits) }
+			other.set[j..-1].each { |el| c += popcount(el.bits) }
+
+			c
 		end
 	end
 
