@@ -14,6 +14,8 @@
    limitations under the License.
 -->
 
+[![Build Status](https://travis-ci.org/js-ojus/sparsebitset.cr.svg?branch=master)](https://travis-ci.org/js-ojus/sparsebitset.cr)
+
 ### SparseBitSet
 
 `SparseBitSet` is a port of my Go `sparsebitset` implementation.  The description here is excerpted from the `README` of that project.
