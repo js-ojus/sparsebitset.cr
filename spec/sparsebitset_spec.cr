@@ -645,4 +645,50 @@ describe SparseBitSet do
       ary.should eq([1_u64, 10_u64, 100_u64, 1000_u64])
     end
   end
+
+  describe "complement" do
+    it "should be empty" do
+      s = BitSet.new()
+      t = s.complement()
+      t.empty?.should eq(true)
+    end
+
+    it "should be empty" do
+      s = BitSet.new()
+      s.set(1_u64)
+      t = s.complement()
+      t.empty?.should eq(true)
+    end
+
+    it "should have a length that is prior length - 1" do
+      s = BitSet.new()
+      s.set(10_u64)
+      t = s.complement()
+      t.length.should eq(9)
+    end
+
+    it "should have a length that is prior length - 1" do
+      s = BitSet.new()
+      s.set(100_u64)
+      t = s.complement()
+      t.length.should eq(99)
+    end
+
+    it "should have a length that is prior length - 2" do
+      s = BitSet.new()
+      s.set(10_u64)
+      s.set(100_u64)
+      t = s.complement()
+      t.length.should eq(98)
+    end
+
+    it "should have a length that is prior length - 3" do
+      s = BitSet.new()
+      s.set(10_u64)
+      s.set(100_u64)
+      s.set(1000_u64)
+      t = s.complement()
+      t.length.should eq(997)
+    end
+  end
 end

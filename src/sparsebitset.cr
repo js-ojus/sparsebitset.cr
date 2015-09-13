@@ -587,14 +587,34 @@ module SparseBitSet
       return res if @set.length == 0
 
       off = 0_u64
-      @set.each do |el|
+      @set.each_with_index do |el, i|
         while off < el.offset
-          res.set << Block.new(off, ALL_ONES)
-          off += WORD_SIZE
+          res.raw_set << Block.new(off, ALL_ONES)
+          off += 1
         end
 
-        res.set << Block.new(el.offset, ~el.bits)
-        off += WORD_SIZE
+        if i < @set.length-1
+          res.raw_set << Block.new(el.offset, ~el.bits)
+          off += 1
+        end
+      end
+      res.raw_set << @set[-1]
+
+      if res.raw_set.length > 0
+        blk = res.raw_set[-1]
+        j = 63
+        while (1_u64 << j) & blk.bits == 0
+          j -= 1
+        end
+        blk.bits = blk.bits << (63-j)
+        blk.bits = ~blk.bits >> (63-j)
+        res.raw_set[-1] = blk
+
+        blk = res.raw_set[0]
+        # '0'th bit should be ignored.
+        blk.bits = blk.bits >> 1
+        blk.bits = blk.bits << 1
+        res.raw_set[0] = blk
       end
 
       res.prune()
