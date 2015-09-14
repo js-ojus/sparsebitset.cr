@@ -980,7 +980,7 @@ describe SparseBitSet do
         s.set(r.rand(n).to_u64)
       end
       tend = Time.now
-      printf("\nRandom set : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      printf("\nRandom set     : %8d ns/op\n", (tend-tbeg).ticks * 100 / n)
     end
 
     it "should test several bits" do
@@ -992,7 +992,7 @@ describe SparseBitSet do
         s.test(r.rand(n).to_u64)
       end
       tend = Time.now
-      printf("\nRandom test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      printf("\nRandom test    : %8d ns/op\n", (tend-tbeg).ticks * 100 / n)
     end
 
     it "should test creation of a bitset" do
@@ -1003,7 +1003,7 @@ describe SparseBitSet do
         s.set(n.to_u64)
       end
       tend = Time.now
-      printf("\nCreation test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      printf("\nCreation test  : %8d ns/op\n", (tend-tbeg).ticks * 100 / n)
     end
 
     it "should set several bits, and count them" do
@@ -1018,7 +1018,7 @@ describe SparseBitSet do
         c += s.length
       end
       tend = Time.now
-      printf("\nCount test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      printf("\nCount test     : %8d ns/op\n", (tend-tbeg).ticks * 100 / n)
     end
 
     it "should set several bits, and iterate over them" do
@@ -1036,7 +1036,7 @@ describe SparseBitSet do
         end
       end
       tend = Time.now
-      printf("\nIteration test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      printf("\nIteration test : %8d ns/op\n", (tend-tbeg).ticks * 100 / n)
     end
 
     it "should set several bits, and iterate over them" do
@@ -1054,7 +1054,7 @@ describe SparseBitSet do
         end
       end
       tend = Time.now
-      printf("\nIteration test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      printf("\nIteration test : %8d ns/op\n", (tend-tbeg).ticks * 100 / n)
     end
   end
 end
