@@ -19,6 +19,23 @@ describe SparseBitSet do
       s.none?.should eq(true)
     end
 
+    it "should answer `false` for a non-empty set" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.none?.should eq(false)
+    end
+
+    it "should have no bits set upon creation" do
+      s = BitSet.new()
+      s.any?.should eq(false)
+    end
+
+    it "should answer `true` for a non-empty set" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.any?.should eq(true)
+    end
+
     it "should set the given bit and test it" do
       s = BitSet.new()
       s.set(1_u64)
@@ -689,6 +706,213 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = s.complement()
       t.length.should eq(997)
+    end
+
+    it "should have a length that is prior length - 3" do
+      s = BitSet.new()
+      s.set(64_u64)
+      s.set(100_u64)
+      s.set(1000_u64)
+      t = s.complement()
+      t.length.should eq(997)
+    end
+  end
+
+  describe "set-wide predicates" do
+    it "should answer `false`" do
+      s = BitSet.new()
+      s.all?.should eq(false)
+    end
+
+    it "should answer `true`" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.all?.should eq(true)
+    end
+
+    it "should answer `false`" do
+      s = BitSet.new()
+      s.set(10_u64)
+      s.all?.should eq(false)
+    end
+
+    it "should answer `false`" do
+      s = BitSet.new()
+      s.set(100_u64)
+      s.all?.should eq(false)
+    end
+
+    it "should answer `true`" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.set(2_u64)
+      s.all?.should eq(true)
+    end
+
+    it "should answer `true`" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.set(2_u64)
+      s.set(3_u64)
+      s.set(4_u64)
+      s.set(5_u64)
+      s.set(6_u64)
+      s.set(7_u64)
+      s.set(8_u64)
+      s.set(9_u64)
+      s.set(11_u64)
+      s.set(12_u64)
+      s.set(13_u64)
+      s.set(14_u64)
+      s.set(15_u64)
+      s.set(16_u64)
+      s.set(17_u64)
+      s.set(18_u64)
+      s.set(19_u64)
+      s.set(21_u64)
+      s.set(22_u64)
+      s.set(23_u64)
+      s.set(24_u64)
+      s.set(25_u64)
+      s.set(26_u64)
+      s.set(27_u64)
+      s.set(28_u64)
+      s.set(29_u64)
+      s.set(31_u64)
+      s.set(32_u64)
+      s.set(33_u64)
+      s.set(34_u64)
+      s.set(35_u64)
+      s.set(36_u64)
+      s.set(37_u64)
+      s.set(38_u64)
+      s.set(39_u64)
+      s.set(41_u64)
+      s.set(42_u64)
+      s.set(43_u64)
+      s.set(44_u64)
+      s.set(45_u64)
+      s.set(46_u64)
+      s.set(47_u64)
+      s.set(48_u64)
+      s.set(49_u64)
+      s.set(51_u64)
+      s.set(52_u64)
+      s.set(53_u64)
+      s.set(54_u64)
+      s.set(55_u64)
+      s.set(56_u64)
+      s.set(57_u64)
+      s.set(58_u64)
+      s.set(59_u64)
+      s.set(61_u64)
+      s.set(62_u64)
+      s.set(63_u64)
+      s.set(64_u64)
+      s.set(65_u64)
+      s.set(66_u64)
+      s.set(67_u64)
+      s.set(68_u64)
+      s.set(69_u64)
+      s.all?.should eq(true)
+    end
+
+    it "should answer `true`" do
+      s = BitSet.new()
+      s.set(64_u64)
+      s.set(65_u64)
+      s.set(66_u64)
+      s.set(67_u64)
+      s.set(68_u64)
+      s.set(69_u64)
+      s.all?.should eq(false)
+    end
+  end
+
+  describe "superset" do
+    it "should check two empty sets" do
+      s = BitSet.new()
+      t = BitSet.new()
+      s.superset?(t).should eq(true)
+    end
+
+    it "should check a non-empty and an empty set" do
+      s = BitSet.new()
+      s.set(64_u64)
+      t = BitSet.new()
+      s.superset?(t).should eq(true)
+    end
+
+    it "should check a non-empty and an empty set" do
+      s = BitSet.new()
+      s.set(64_u64)
+      t = BitSet.new()
+      t.superset?(s).should eq(false)
+    end
+
+    it "should check two equal sets" do
+      s = BitSet.new()
+      s.set(64_u64)
+      t = BitSet.new()
+      t.set(64_u64)
+      s.superset?(t).should eq(true)
+    end
+
+    it "should check two unequal sets" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.set(64_u64)
+      t = BitSet.new()
+      t.set(64_u64)
+      s.superset?(t).should eq(true)
+    end
+
+    it "should check two unequal sets" do
+      s = BitSet.new()
+      s.set(64_u64)
+      t = BitSet.new()
+      t.set(1_u64)
+      t.set(64_u64)
+      s.superset?(t).should eq(false)
+    end
+
+    it "should check two empty sets" do
+      s = BitSet.new()
+      t = BitSet.new()
+      s.strict_superset?(t).should eq(false)
+    end
+
+    it "should check a non-empty and an empty set" do
+      s = BitSet.new()
+      s.set(64_u64)
+      t = BitSet.new()
+      t.strict_superset?(s).should eq(false)
+    end
+
+    it "should check two equal sets" do
+      s = BitSet.new()
+      s.set(64_u64)
+      t = BitSet.new()
+      t.set(64_u64)
+      s.strict_superset?(t).should eq(false)
+    end
+
+    it "should check two unequal sets" do
+      s = BitSet.new()
+      s.set(64_u64)
+      t = BitSet.new()
+      t.set(1_u64)
+      t.set(64_u64)
+      s.strict_superset?(t).should eq(false)
+    end
+
+    it "should check two unequal sets" do
+      s = BitSet.new()
+      s.set(64_u64)
+      t = BitSet.new()
+      t.set(1_u64)
+      t.set(64_u64)
+      t.strict_superset?(s).should eq(true)
     end
   end
 end

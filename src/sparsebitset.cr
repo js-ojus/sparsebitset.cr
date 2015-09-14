@@ -597,8 +597,8 @@ module SparseBitSet
         blk.bits = ~blk.bits >> (63-j)
         res.raw_set[-1] = blk
 
-        blk = res.raw_set[0]
         # '0'th bit should be ignored.
+        blk = res.raw_set[0]
         blk.bits = blk.bits >> 1
         blk.bits = blk.bits << 1
         res.raw_set[0] = blk
@@ -614,18 +614,27 @@ module SparseBitSet
       return false if @set.length == 0
 
       off = 0_u64
-      @set[0..-2].each do |el|
+      @set.each_with_index do |el, i|
         return false if el.offset != off
-        return false if el.bits != ALL_ONES
 
-        off += WORD_SIZE
+        if el.offset > 0 && i < @set.length-1
+          return false if el.bits != ALL_ONES
+        end
+
+        off += 1
       end
 
-      # Check the last block.
-      w = @set[-1].bits
-      c = popcount(w)
-      w = w >> c
-      return false if w > 0
+      el = @set[-1]
+      cp = popcount(el.bits)
+      if el.offset == 0 # Handle '0'th bit.
+        cp += 1
+        w = (el.bits | 1) ^ ALL_ONES
+      else
+        w = el.bits ^ ALL_ONES
+      end
+      tz = trailing_zeroes_count(w)
+      return false if cp != tz
+
       true
     end
 
