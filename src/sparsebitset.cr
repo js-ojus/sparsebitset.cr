@@ -152,7 +152,7 @@ module SparseBitSet
 
   # BitSet is a compact representation of sparse sets of non-negative
   # integers.
-  class BitSet
+  struct BitSet
     include Iterable
 
     def initialize
