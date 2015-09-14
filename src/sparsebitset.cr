@@ -39,14 +39,10 @@ module SparseBitSet
 
   #
 
-  DE_BRUIJN = [] of UInt8
-  DE_BRUIJN.concat [0_u8, 1_u8, 56_u8, 2_u8, 57_u8, 49_u8, 28_u8, 3_u8, 61_u8,
-    58_u8, 42_u8, 50_u8, 38_u8, 29_u8, 17_u8, 4_u8, 62_u8, 47_u8, 59_u8,
-    36_u8, 45_u8, 43_u8, 51_u8, 22_u8, 53_u8, 39_u8, 33_u8, 30_u8, 24_u8,
-    18_u8, 12_u8, 5_u8, 63_u8, 55_u8, 48_u8, 27_u8, 60_u8, 41_u8, 37_u8,
-    16_u8, 46_u8, 35_u8, 44_u8, 21_u8, 52_u8, 32_u8, 23_u8, 11_u8, 54_u8,
-    26_u8, 40_u8, 15_u8, 34_u8, 20_u8, 31_u8, 10_u8, 25_u8, 14_u8, 19_u8,
-    9_u8, 13_u8, 8_u8, 7_u8, 6_u8,]
+  DE_BRUIJN = UInt8[0, 1, 56, 2, 57, 49, 28, 3, 61, 58, 42, 50, 38,
+    29, 17, 4, 62, 47, 59, 36, 45, 43, 51, 22, 53, 39, 33, 30, 24, 18,
+    12, 5, 63, 55, 48, 27, 60, 41, 37, 16, 46, 35, 44, 21, 52, 32, 23,
+    11, 54, 26, 40, 15, 34, 20, 31, 10, 25, 14, 19, 9, 13, 8, 7, 6,]
 
   # A quick way to find the number of trailing zeroes in the word.
   private def trailing_zeroes_count(v : UInt64) : UInt64
@@ -66,8 +62,8 @@ module SparseBitSet
     x >> 56
   end
 
-  # popcountSet answers the number of bits set to `1` in the given set.
-  private def popcountSet(set : Array(Block)) : UInt64
+  # popcount_set answers the number of bits set to `1` in the given set.
+  private def popcount_set(set : Array(Block)) : UInt64
     set.inject(0_u64) do |cnt, el|
      cnt + popcount(el.bits)
    end
@@ -76,13 +72,10 @@ module SparseBitSet
   # Block is a pair of (offset, bits) capable of holding information for up
   # to `WORD_SIZE` elements.
   struct Block
-    @offset :: UInt64
-    @bits :: UInt64
-
     getter offset
     property bits
 
-    def initialize(@offset, @bits)
+    def initialize(@offset : UInt64, @bits : UInt64)
       # Intentionally left blank.
     end
 
@@ -113,11 +106,7 @@ module SparseBitSet
   # SbsIterator provides iteration over a sparse bitset.
   class SbsIterator
     include Iterator(UInt64)
-
-    @set :: Array(Block)
-    @curr :: UInt64
-
-    def initialize(@set)
+    def initialize(@set : Array(Block))
       @curr = 0_u64
     end
 
@@ -154,8 +143,6 @@ module SparseBitSet
   # integers.
   class BitSet
     include Iterable
-
-    @set :: Array(Block)
 
     def initialize
       @set = Array(Block).new()
@@ -258,7 +245,7 @@ module SparseBitSet
 
     # length answers the number of bits set.
     def length : UInt64
-      popcountSet(@set)
+      popcount_set(@set)
     end
 
     # `==` answers `true` iff the given bitset has the same bits set as
@@ -280,8 +267,8 @@ module SparseBitSet
       @set.delete_if { |el| el.bits == 0 }
     end
 
-    # newSetOp generates several user-visible set operations.
-    macro newSetOp(name, params)
+    # def_set_op generates several user-visible set operations.
+    macro def_set_op(name, params)
       def {{ name.id }}(other : BitSet) : BitSet | Nil
         return nil if other.nil?
 
@@ -324,21 +311,21 @@ module SparseBitSet
 
     # difference performs a 'set minus' of the given bitset from this
     # bitset.
-    newSetOp(:difference,
+    def_set_op(:difference,
       {op: "&", pre_op: "~", sfull: true, ofull: false, prune: true})
 
     # intersection performs a 'set intersection' of the given bitset with
     # this bitset.
-    newSetOp(:intersection,
+    def_set_op(:intersection,
       {op: "&", pre_op: "", sfull: false, ofull: false, prune: true})
 
     # union performs a 'set union' of the given bitset with this bitset.
-    newSetOp(:union,
+    def_set_op(:union,
       {op: "|", pre_op: "", sfull: true, ofull: true, prune: false})
 
     # symmetric_difference performs a 'set symmetric difference' between
     # the given bitset and this bitset.
-    newSetOp(:symmetric_difference,
+    def_set_op(:symmetric_difference,
       {op: "^", pre_op: "", sfull: true, ofull: true, prune: true})
 
     # difference! performs an in-place 'set minus' of the given bitset

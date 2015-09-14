@@ -1,3 +1,3 @@
-module Sparsebitset
-  VERSION = "0.0.1"
+module SparseBitSet
+  VERSION = "0.0.2"
 end

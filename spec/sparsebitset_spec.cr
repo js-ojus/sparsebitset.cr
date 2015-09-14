@@ -3,7 +3,7 @@ require "./spec_helper"
 include SparseBitSet
 
 describe SparseBitSet do
-  describe "Basic operations" do
+  describe "basic operations" do
     it "should have a length of 0 upon creation" do
       s = BitSet.new()
       s.length.should eq(0)
@@ -528,7 +528,7 @@ describe SparseBitSet do
     end
   end
 
-  describe "symmetric_difference" do
+  describe "symmetric difference" do
     it "should answer null set" do
       s = BitSet.new()
       t = BitSet.new()
