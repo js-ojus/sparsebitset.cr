@@ -40,9 +40,9 @@ module SparseBitSet
   #
 
   DE_BRUIJN = UInt8[0, 1, 56, 2, 57, 49, 28, 3, 61, 58, 42, 50, 38,
-    29, 17, 4, 62, 47, 59, 36, 45, 43, 51, 22, 53, 39, 33, 30, 24, 18,
-    12, 5, 63, 55, 48, 27, 60, 41, 37, 16, 46, 35, 44, 21, 52, 32, 23,
-    11, 54, 26, 40, 15, 34, 20, 31, 10, 25, 14, 19, 9, 13, 8, 7, 6,]
+                    29, 17, 4, 62, 47, 59, 36, 45, 43, 51, 22, 53, 39, 33, 30, 24, 18,
+                    12, 5, 63, 55, 48, 27, 60, 41, 37, 16, 46, 35, 44, 21, 52, 32, 23,
+                    11, 54, 26, 40, 15, 34, 20, 31, 10, 25, 14, 19, 9, 13, 8, 7, 6,]
 
   # A quick way to find the number of trailing zeroes in the word.
   private def trailing_zeroes_count(v : UInt64) : UInt64
@@ -65,8 +65,8 @@ module SparseBitSet
   # popcount_set answers the number of bits set to `1` in the given set.
   private def popcount_set(set : Array(Block)) : UInt64
     set.inject(0_u64) do |cnt, el|
-     cnt + popcount(el.bits)
-   end
+      cnt + popcount(el.bits)
+    end
   end
 
   # Block is a pair of (offset, bits) capable of holding information for up
@@ -76,7 +76,7 @@ module SparseBitSet
     property bits
 
     def initialize(@offset : UInt64, @bits : UInt64)
-      # Intentionally left blank.
+    # Intentionally left blank.
     end
 
     # set sets the bit at the given position.
@@ -112,7 +112,7 @@ module SparseBitSet
 
     # next answers the position of the next bit that is set.  If no such
     # bit exists, it answers `Iterator::Stop::INSTANCE`.
-    def next
+    def next : UInt64 | Iterator::Stop
       off, rsh = @curr >> LOG2_WORD_SIZE, @curr & MOD_WORD_SIZE
 
       idx = nil
@@ -136,6 +136,17 @@ module SparseBitSet
       else
         Iterator::Stop::INSTANCE
       end
+    end
+
+    # next answers the position of the next set bit in this bitset,
+    # starting with the given index.  If no such bit exists, it
+    # answers `Iterator::Stop::INSTANCE`.
+    def next(n : UInt64) : UInt64 | Iterator::Stop
+      c = popcount_set(@set)
+      return Iterator::Stop::INSTANCE if n > c
+
+      @curr = n
+      self.next
     end
   end
 
@@ -280,9 +291,9 @@ module SparseBitSet
           case
           when sel.offset < oel.offset
             {% if params[:sfull] %}
-            res.raw_set << sel
+              res.raw_set << sel
             {% end %}
-            i += 1
+              i += 1
 
           when sel.offset == oel.offset
             res.raw_set << Block.new(sel.offset, sel.bits {{ params[:op].id }} {{ params[:pre_op].id }}oel.bits)
@@ -290,43 +301,43 @@ module SparseBitSet
 
           else
             {% if params[:ofull] %}
-            res.raw_set << oel
+              res.raw_set << oel
             {% end %}
-            j += 1
+              j += 1
           end
         end
         {% if params[:sfull] %}
-        res.raw_set.concat(@set[i..-1])
+          res.raw_set.concat(@set[i..-1])
         {% end %}
-        {% if params[:ofull] %}
-        res.raw_set.concat(other.raw_set[j..-1])
-        {% end %}
+          {% if params[:ofull] %}
+            res.raw_set.concat(other.raw_set[j..-1])
+          {% end %}
 
-        {% if params[:prune] %}
-        res.prune()
-        {% end %}
-        res
+          {% if params[:prune] %}
+            res.prune()
+          {% end %}
+          res
       end
     end
 
     # difference performs a 'set minus' of the given bitset from this
     # bitset.
     def_set_op(:difference,
-      {op: "&", pre_op: "~", sfull: true, ofull: false, prune: true})
+               {op: "&", pre_op: "~", sfull: true, ofull: false, prune: true})
 
     # intersection performs a 'set intersection' of the given bitset with
     # this bitset.
     def_set_op(:intersection,
-      {op: "&", pre_op: "", sfull: false, ofull: false, prune: true})
+               {op: "&", pre_op: "", sfull: false, ofull: false, prune: true})
 
     # union performs a 'set union' of the given bitset with this bitset.
     def_set_op(:union,
-      {op: "|", pre_op: "", sfull: true, ofull: true, prune: false})
+               {op: "|", pre_op: "", sfull: true, ofull: true, prune: false})
 
     # symmetric_difference performs a 'set symmetric difference' between
     # the given bitset and this bitset.
     def_set_op(:symmetric_difference,
-      {op: "^", pre_op: "", sfull: true, ofull: true, prune: true})
+               {op: "^", pre_op: "", sfull: true, ofull: true, prune: true})
 
     # difference! performs an in-place 'set minus' of the given bitset
     # from this bitset.

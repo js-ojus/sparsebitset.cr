@@ -189,6 +189,60 @@ describe SparseBitSet do
       end
       ary.should eq([1_u64, 100_u64, 1000_u64])
     end
+
+    it "should answer all set bits" do
+      s = BitSet.new()
+      s.set(100_u64)
+      s.set(1000_u64)
+      iter = s.each
+      ary = [] of UInt64
+      while (i = iter.next) != Iterator::Stop::INSTANCE
+        ary << (i as UInt64)
+      end
+      ary.should eq([100_u64, 1000_u64])
+    end
+
+    it "should answer all set bits" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.set(1000_u64)
+      iter = s.each
+      ary = [] of UInt64
+      while (i = iter.next) != Iterator::Stop::INSTANCE
+        ary << (i as UInt64)
+      end
+      ary.should eq([1_u64, 1000_u64])
+    end
+
+    it "should answer a subset of bits" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.set(100_u64)
+      s.set(1000_u64)
+      iter = s.each
+      ary = [] of UInt64
+      i = iter.next(1_u64)
+      ary << i as UInt64
+      while (i = iter.next) != Iterator::Stop::INSTANCE
+        ary << (i as UInt64)
+      end
+      ary.should eq([1_u64, 100_u64, 1000_u64])
+    end
+
+    it "should answer a subset of bits" do
+      s = BitSet.new()
+      s.set(1_u64)
+      s.set(100_u64)
+      s.set(1000_u64)
+      iter = s.each
+      ary = [] of UInt64
+      i = iter.next(2_u64)
+      ary << i as UInt64
+      while (i = iter.next) != Iterator::Stop::INSTANCE
+        ary << (i as UInt64)
+      end
+      ary.should eq([100_u64, 1000_u64])
+    end
   end
 
   describe "difference" do
@@ -913,6 +967,99 @@ describe SparseBitSet do
       t.set(1_u64)
       t.set(64_u64)
       t.strict_superset?(s).should eq(true)
+    end
+  end
+
+  describe "benchmarks" do
+    it "should set several bits" do
+      s = BitSet.new()
+      n = 100000
+      r = Random.new()
+      tbeg = Time.now
+      (1..n).each do |_|
+        s.set(r.rand(n).to_u64)
+      end
+      tend = Time.now
+      printf("\nRandom set : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      ((tend-tbeg).milliseconds > 0).should eq(true)
+    end
+
+    it "should test several bits" do
+      s = BitSet.new()
+      n = 100000
+      r = Random.new()
+      tbeg = Time.now
+      (1..n).each do |_|
+        s.test(r.rand(n).to_u64)
+      end
+      tend = Time.now
+      printf("\nRandom test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      ((tend-tbeg).milliseconds > 0).should eq(true)
+    end
+
+    it "should test creation of a bitset" do
+      n = 100000
+      tbeg = Time.now
+      (1..n).each do |_|
+        s = BitSet.new()
+        s.set(n.to_u64)
+      end
+      tend = Time.now
+      printf("\nCreation test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      ((tend-tbeg).milliseconds > 0).should eq(true)
+    end
+
+    it "should set several bits, and count them" do
+      n = 100000
+      s = BitSet.new()
+      (1..1000).each do |i|
+        s.set(i.to_u64*100)
+      end
+      tbeg = Time.now
+      (1..n).each do |_|
+        s.length
+      end
+      tend = Time.now
+      printf("\nCount test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      ((tend-tbeg).milliseconds > 0).should eq(true)
+    end
+
+    it "should set several bits, and iterate over them" do
+      n = 1000
+      s = BitSet.new()
+      (1..3333).each do |i|
+        s.set(i.to_u64*3)
+      end
+      tbeg = Time.now
+      (1..n).each do |_|
+        iter = s.each
+        c = 0
+        while iter.next != Iterator::Stop::INSTANCE
+          c += 1
+        end
+      end
+      tend = Time.now
+      printf("\nIteration test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      ((tend-tbeg).milliseconds > 0).should eq(true)
+    end
+
+    it "should set several bits, and iterate over them" do
+      n = 500
+      s = BitSet.new()
+      (1..3333).each do |i|
+        s.set(i.to_u64*30)
+      end
+      tbeg = Time.now
+      (1..n).each do |_|
+        iter = s.each
+        c = 0
+        while iter.next != Iterator::Stop::INSTANCE
+          c += 1
+        end
+      end
+      tend = Time.now
+      printf("\nIteration test : %d ns/op\n", (tend-tbeg).ticks * 100 / n)
+      ((tend-tbeg).milliseconds > 0).should eq(true)
     end
   end
 end
