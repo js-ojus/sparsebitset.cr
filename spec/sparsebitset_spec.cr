@@ -740,6 +740,13 @@ describe SparseBitSet do
 
     it "should have a length that is prior length - 1" do
       s = BitSet.new()
+      s.set(64_u64)
+      t = s.complement()
+      t.length.should eq(63)
+    end
+
+    it "should have a length that is prior length - 1" do
+      s = BitSet.new()
       s.set(100_u64)
       t = s.complement()
       t.length.should eq(99)

@@ -291,9 +291,9 @@ module SparseBitSet
           case
           when sel.offset < oel.offset
             {% if params[:sfull] %}
-              res.raw_set << sel
+            res.raw_set << sel
             {% end %}
-              i += 1
+            i += 1
 
           when sel.offset == oel.offset
             res.raw_set << Block.new(sel.offset, sel.bits {{ params[:op].id }} {{ params[:pre_op].id }}oel.bits)
@@ -301,22 +301,22 @@ module SparseBitSet
 
           else
             {% if params[:ofull] %}
-              res.raw_set << oel
+            res.raw_set << oel
             {% end %}
-              j += 1
+            j += 1
           end
         end
         {% if params[:sfull] %}
-          res.raw_set.concat(@set[i..-1])
+        res.raw_set.concat(@set[i..-1])
         {% end %}
-          {% if params[:ofull] %}
-            res.raw_set.concat(other.raw_set[j..-1])
-          {% end %}
+        {% if params[:ofull] %}
+        res.raw_set.concat(other.raw_set[j..-1])
+        {% end %}
 
-          {% if params[:prune] %}
-            res.prune()
-          {% end %}
-          res
+        {% if params[:prune] %}
+        res.prune()
+        {% end %}
+        res
       end
     end
 
@@ -580,6 +580,9 @@ module SparseBitSet
 
     # complement answers a bit-wise complement of this bitset, up to the
     # highest bit set in this bitset.
+    #
+    # N.B. Since bitset is not bounded, `a.complement().complement() != a`.
+    # This limits the usefulness of this operation.  Use with care!
     def complement : BitSet
       res = BitSet.new()
       return res if @set.length == 0
@@ -598,22 +601,20 @@ module SparseBitSet
       end
       res.raw_set << @set[-1]
 
-      if res.raw_set.length > 0
-        blk = res.raw_set[-1]
-        j = 63
-        while (1_u64 << j) & blk.bits == 0
-          j -= 1
-        end
-        blk.bits = blk.bits << (63-j)
-        blk.bits = ~blk.bits >> (63-j)
-        res.raw_set[-1] = blk
-
-        # '0'th bit should be ignored.
-        blk = res.raw_set[0]
-        blk.bits = blk.bits >> 1
-        blk.bits = blk.bits << 1
-        res.raw_set[0] = blk
+      blk = res.raw_set[-1]
+      j = 1
+      while (blk.bits >> j) > 0
+        j += 1
       end
+      blk.bits = blk.bits << (64-j)
+      blk.bits = ~blk.bits >> (64-j)
+      res.raw_set[-1] = blk
+
+      # '0'th bit should be ignored.
+      blk = res.raw_set[0]
+      blk.bits = blk.bits >> 1
+      blk.bits = blk.bits << 1
+      res.raw_set[0] = blk
 
       res.prune()
       res
