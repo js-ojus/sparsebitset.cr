@@ -37,6 +37,29 @@ module SparseBitSet
   # A word with all bits set to `1`.
   ALL_ONES = 0xffffffffffffffff_u64
 
+  # Constants used in `popcount`.
+  M1  = 0x5555555555555555_u64
+  M2  = 0x3333333333333333_u64
+  M4  = 0x0f0f0f0f0f0f0f0f_u64
+  H01 = 0x0101010101010101_u64
+
+  # popcount answers the number of bits set to `1` in this word.  It
+  # uses the bit population count (Hamming Weight) logic taken from
+  # https://en.wikipedia.org/wiki/Hamming_weight#Efficient_implementation.
+  private def popcount(x : UInt64) : UInt64
+    x -= (x >> 1) & M1
+    x  = (x & M2) + ((x >> 2) & M2)
+    x  = (x + (x >> 4)) & M4
+    (x * H01) >> 56
+  end
+
+  # popcount_set answers the number of bits set to `1` in the given set.
+  private def popcount_set(set : Array(Block)) : UInt64
+    set.inject(0_u64) do |cnt, el|
+      cnt + popcount(el.bits)
+    end
+  end
+
   #
 
   DE_BRUIJN = UInt8[0, 1, 56, 2, 57, 49, 28, 3, 61, 58, 42, 50, 38,
@@ -49,25 +72,7 @@ module SparseBitSet
     (DE_BRUIJN[(((0_u64-v) & v) * 0x03f79d71b4ca8b09) >> 58]).to_u64
   end
 
-  # popcount answers the number of bits set to `1` in this word.  It uses
-  # the bit population count (Hamming Weight) logic taken from
-  # https://code.google.com/p/go/issues/detail?id=4988#c11.  Original by
-  # 'https://code.google.com/u/arnehormann'.
-  private def popcount(x : UInt64) : UInt64
-    x -= (x >> 1) & 0x5555555555555555
-    x =  ((x >> 2) & 0x3333333333333333) + (x & 0x3333333333333333)
-    x += x >> 4
-    x &= 0x0f0f0f0f0f0f0f0f
-    x *= 0x0101010101010101
-    x >> 56
-  end
-
-  # popcount_set answers the number of bits set to `1` in the given set.
-  private def popcount_set(set : Array(Block)) : UInt64
-    set.inject(0_u64) do |cnt, el|
-      cnt + popcount(el.bits)
-    end
-  end
+  #
 
   # Block is a pair of (offset, bits) capable of holding information for up
   # to `WORD_SIZE` elements.
