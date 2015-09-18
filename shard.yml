@@ -1,0 +1,10 @@
+name: sparsebitset
+version: 0.3.1
+
+authors:
+  - JONNALAGADDA Srinivas <js@ojuslabs.com>
+
+description: |
+  A space-efficient bitset implementation.
+
+license: Apache License 2.0
