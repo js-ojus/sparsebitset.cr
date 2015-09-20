@@ -6,7 +6,7 @@ describe SparseBitSet do
   describe "basic operations" do
     it "should have a length of 0 upon creation" do
       s = BitSet.new()
-      s.length.should eq(0)
+      s.size.should eq(0)
     end
 
     it "should be empty upon creation" do
@@ -113,7 +113,7 @@ describe SparseBitSet do
       s.set(100_u64)
       s.set(1000_u64)
       s.flip(1000_u64)
-      s.length.should eq(2)
+      s.size.should eq(2)
     end
 
     it "should set the given bit, flip it and then test it" do
@@ -122,7 +122,7 @@ describe SparseBitSet do
       s.set(100_u64)
       s.set(1000_u64)
       s.flip(100_u64)
-      s.length.should eq(2)
+      s.size.should eq(2)
     end
 
     it "should clear the entire bitset and test it" do
@@ -131,7 +131,7 @@ describe SparseBitSet do
       s.set(100_u64)
       s.set(1000_u64)
       s.clear_all()
-      s.length.should eq(0)
+      s.size.should eq(0)
     end
   end
 
@@ -142,7 +142,7 @@ describe SparseBitSet do
       s.set(100_u64)
       s.set(1000_u64)
       t = s.clone
-      t.length.should eq(s.length)
+      t.size.should eq(s.size)
     end
 
     it "should clone a bitset, and test for equality of individual bits" do
@@ -251,7 +251,7 @@ describe SparseBitSet do
       t = BitSet.new()
       w = s.difference(t)
       if w
-        w.length.should eq(0)
+        w.size.should eq(0)
       end
     end
 
@@ -263,7 +263,7 @@ describe SparseBitSet do
       t = BitSet.new()
       w = s.difference(t)
       if w
-        w.length.should eq(3)
+        w.size.should eq(3)
       end
     end
 
@@ -285,7 +285,7 @@ describe SparseBitSet do
       t.set(100_u64)
       w = s.difference(t)
       if w
-        w.length.should eq(2)
+        w.size.should eq(2)
       end
     end
 
@@ -321,7 +321,7 @@ describe SparseBitSet do
       s = BitSet.new()
       t = BitSet.new()
       s.difference!(t)
-      s.length.should eq(0)
+      s.size.should eq(0)
     end
 
     it "should result in a copy of the original set" do
@@ -331,7 +331,7 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = BitSet.new()
       s.difference!(t)
-      s.length.should eq(3)
+      s.size.should eq(3)
     end
 
     it "should answer a smaller set" do
@@ -342,7 +342,7 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       s.difference!(t)
-      s.length.should eq(2)
+      s.size.should eq(2)
     end
 
     it "should answer a smaller set" do
@@ -369,7 +369,7 @@ describe SparseBitSet do
       t = BitSet.new()
       w = s.intersection(t)
       if w
-        w.length.should eq(0)
+        w.size.should eq(0)
       end
     end
 
@@ -381,7 +381,7 @@ describe SparseBitSet do
       t = BitSet.new()
       w = s.intersection(t)
       if w
-        w.length.should eq(0)
+        w.size.should eq(0)
       end
     end
 
@@ -403,7 +403,7 @@ describe SparseBitSet do
       t.set(100_u64)
       w = s.intersection(t)
       if w
-        w.length.should eq(1)
+        w.size.should eq(1)
       end
     end
 
@@ -439,7 +439,7 @@ describe SparseBitSet do
       s = BitSet.new()
       t = BitSet.new()
       s.intersection!(t)
-      s.length.should eq(0)
+      s.size.should eq(0)
     end
 
     it "should result in null set" do
@@ -449,7 +449,7 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = BitSet.new()
       s.intersection!(t)
-      s.length.should eq(0)
+      s.size.should eq(0)
     end
 
     it "should answer a smaller set" do
@@ -460,7 +460,7 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       s.intersection!(t)
-      s.length.should eq(1)
+      s.size.should eq(1)
     end
 
     it "should answer a smaller set" do
@@ -487,7 +487,7 @@ describe SparseBitSet do
       t = BitSet.new()
       w = s.union(t)
       if w
-        w.length.should eq(0)
+        w.size.should eq(0)
       end
     end
 
@@ -499,7 +499,7 @@ describe SparseBitSet do
       t = BitSet.new()
       w = s.union(t)
       if w
-        w.length.should eq(3)
+        w.size.should eq(3)
       end
     end
 
@@ -521,7 +521,7 @@ describe SparseBitSet do
       t.set(100_u64)
       w = s.union(t)
       if w
-        w.length.should eq(3)
+        w.size.should eq(3)
       end
     end
 
@@ -557,7 +557,7 @@ describe SparseBitSet do
       s = BitSet.new()
       t = BitSet.new()
       s.union!(t)
-      s.length.should eq(0)
+      s.size.should eq(0)
     end
 
     it "should result in the length of the original set" do
@@ -567,7 +567,7 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = BitSet.new()
       s.union!(t)
-      s.length.should eq(3)
+      s.size.should eq(3)
     end
 
     it "should result in the length of the original set" do
@@ -578,7 +578,7 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       s.union!(t)
-      s.length.should eq(3)
+      s.size.should eq(3)
     end
 
     it "should answer a full union" do
@@ -605,7 +605,7 @@ describe SparseBitSet do
       t = BitSet.new()
       w = s.symmetric_difference(t)
       if w
-        w.length.should eq(0)
+        w.size.should eq(0)
       end
     end
 
@@ -617,7 +617,7 @@ describe SparseBitSet do
       t = BitSet.new()
       w = s.symmetric_difference(t)
       if w
-        w.length.should eq(3)
+        w.size.should eq(3)
       end
     end
 
@@ -639,7 +639,7 @@ describe SparseBitSet do
       t.set(100_u64)
       w = s.symmetric_difference(t)
       if w
-        w.length.should eq(2)
+        w.size.should eq(2)
       end
     end
 
@@ -675,7 +675,7 @@ describe SparseBitSet do
       s = BitSet.new()
       t = BitSet.new()
       s.symmetric_difference!(t)
-      s.length.should eq(0)
+      s.size.should eq(0)
     end
 
     it "should result in the length of the original set" do
@@ -685,7 +685,7 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = BitSet.new()
       s.symmetric_difference!(t)
-      s.length.should eq(3)
+      s.size.should eq(3)
     end
 
     it "should result in the length of the original set" do
@@ -696,7 +696,7 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       s.symmetric_difference!(t)
-      s.length.should eq(2)
+      s.size.should eq(2)
     end
 
     it "should answer a full symmetric_difference" do
@@ -735,21 +735,21 @@ describe SparseBitSet do
       s = BitSet.new()
       s.set(10_u64)
       t = s.complement()
-      t.length.should eq(9)
+      t.size.should eq(9)
     end
 
     it "should have a length that is prior length - 1" do
       s = BitSet.new()
       s.set(64_u64)
       t = s.complement()
-      t.length.should eq(63)
+      t.size.should eq(63)
     end
 
     it "should have a length that is prior length - 1" do
       s = BitSet.new()
       s.set(100_u64)
       t = s.complement()
-      t.length.should eq(99)
+      t.size.should eq(99)
     end
 
     it "should have a length that is prior length - 2" do
@@ -757,7 +757,7 @@ describe SparseBitSet do
       s.set(10_u64)
       s.set(100_u64)
       t = s.complement()
-      t.length.should eq(98)
+      t.size.should eq(98)
     end
 
     it "should have a length that is prior length - 3" do
@@ -766,7 +766,7 @@ describe SparseBitSet do
       s.set(100_u64)
       s.set(1000_u64)
       t = s.complement()
-      t.length.should eq(997)
+      t.size.should eq(997)
     end
 
     it "should have a length that is prior length - 3" do
@@ -775,7 +775,7 @@ describe SparseBitSet do
       s.set(100_u64)
       s.set(1000_u64)
       t = s.complement()
-      t.length.should eq(997)
+      t.size.should eq(997)
     end
   end
 

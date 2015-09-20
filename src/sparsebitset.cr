@@ -259,8 +259,8 @@ module SparseBitSet
       bs
     end
 
-    # length answers the number of bits set.
-    def length : UInt64
+    # size answers the number of bits set.
+    def size : UInt64
       popcount_set(@set)
     end
 
@@ -268,8 +268,8 @@ module SparseBitSet
     # those of this bitset.
     def ==(other : BitSet) : Bool
       return false if other.nil?
-      return false if @set.length != other.raw_set.length
-      return true if @set.length == 0
+      return false if @set.size != other.raw_set.size
+      return true if @set.size == 0
 
       @set.each_with_index do |el, i|
         oel = other.raw_set[i]
@@ -290,7 +290,7 @@ module SparseBitSet
 
         res = BitSet.new()
         i, j = 0, 0
-        while i < @set.length && j < other.raw_set.length
+        while i < @set.size && j < other.raw_set.size
           sel, oel = @set[i], other.raw_set[j]
 
           case
@@ -350,7 +350,7 @@ module SparseBitSet
       return self if other.nil?
 
       i, j = 0, 0
-      while i < @set.length && j < other.raw_set.length
+      while i < @set.size && j < other.raw_set.size
         sel, oel = @set[i], other.raw_set[j]
 
         case
@@ -375,11 +375,11 @@ module SparseBitSet
     # between this bitset and the given bitset.  This does *not* construct
     # an intermediate bitset.
     def difference_cardinality(other : BitSet) : UInt64
-      return self.length if other.nil?
+      return self.size if other.nil?
 
       c = 0_u64
       i, j = 0, 0
-      while i < @set.length && j < other.raw_set.length
+      while i < @set.size && j < other.raw_set.size
         sel, oel = @set[i], other.raw_set[j]
 
         case
@@ -406,7 +406,7 @@ module SparseBitSet
       return self if other.nil?
 
       i, j = 0, 0
-      while i < @set.length && j < other.raw_set.length
+      while i < @set.size && j < other.raw_set.size
         sel, oel = @set[i], other.raw_set[j]
 
         case
@@ -424,7 +424,7 @@ module SparseBitSet
           j += 1
         end
       end
-      while i < @set.length
+      while i < @set.size
         sel = @set[i]
         sel.bits = 0_u64
         @set[i] = sel
@@ -443,7 +443,7 @@ module SparseBitSet
 
       c = 0_u64
       i, j = 0, 0
-      while i < @set.length && j < other.raw_set.length
+      while i < @set.size && j < other.raw_set.size
         sel, oel = @set[i], other.raw_set[j]
 
         case
@@ -469,7 +469,7 @@ module SparseBitSet
 
       i, j = 0, 0
       loop do
-        break if i >= @set.length || j >= other.raw_set.length
+        break if i >= @set.size || j >= other.raw_set.size
 
         sel, oel = @set[i], other.raw_set[j]
 
@@ -496,11 +496,11 @@ module SparseBitSet
     # set between this bitset and the given bitset.  This does *not*
     # construct an intermediate bitset.
     def union_cardinality(other : BitSet) : UInt64
-      return self.length if other.nil?
+      return self.size if other.nil?
 
       c = 0_u64
       i, j = 0, 0
-      while i < @set.length && j < other.raw_set.length
+      while i < @set.size && j < other.raw_set.size
         sel, oel = @set[i], other.raw_set[j]
 
         case
@@ -529,7 +529,7 @@ module SparseBitSet
       return self if other.nil?
 
       i, j = 0, 0
-      while i < @set.length && j < other.raw_set.length
+      while i < @set.size && j < other.raw_set.size
         sel, oel = @set[i], other.raw_set[j]
 
         case
@@ -556,11 +556,11 @@ module SparseBitSet
     # symmetric_difference set between this bitset and the given bitset.
     # This does *not* construct an intermediate bitset.
     def symmetric_difference_cardinality(other : BitSet) : UInt64
-      return self.length if other.nil?
+      return self.size if other.nil?
 
       c = 0_u64
       i, j = 0, 0
-      while i < @set.length && j < other.raw_set.length
+      while i < @set.size && j < other.raw_set.size
         sel, oel = @set[i], other.raw_set[j]
 
         case
@@ -590,7 +590,7 @@ module SparseBitSet
     # This limits the usefulness of this operation.  Use with care!
     def complement : BitSet
       res = BitSet.new()
-      return res if @set.length == 0
+      return res if @set.size == 0
 
       off = 0_u64
       @set.each_with_index do |el, i|
@@ -599,7 +599,7 @@ module SparseBitSet
           off += 1
         end
 
-        if i < @set.length-1
+        if i < @set.size-1
           res.raw_set << Block.new(el.offset, ~el.bits)
           off += 1
         end
@@ -628,13 +628,13 @@ module SparseBitSet
     # all? answers `true` if all the bits in it, up to its highest set
     # bit, are set; answers `false` otherwise.
     def all? : Bool
-      return false if @set.length == 0
+      return false if @set.size == 0
 
       off = 0_u64
       @set.each_with_index do |el, i|
         return false if el.offset != off
 
-        if el.offset > 0 && i < @set.length-1
+        if el.offset > 0 && i < @set.size-1
           return false if el.bits != ALL_ONES
         end
 
@@ -657,7 +657,7 @@ module SparseBitSet
 
     # empty? answers `true` iff this bitset is empty, `false` otherwise.
     def empty? : Bool
-      @set.length == 0
+      @set.size == 0
     end
 
     # none? is an alias for `empty?`.
@@ -681,10 +681,10 @@ module SparseBitSet
     # strict_superset? answers `true` if this bitset is a superset of the
     # given bitset, and includes at least one additional element.
     def strict_superset?(other : BitSet) : Bool
-      return false if @set.length < other.raw_set.length
+      return false if @set.size < other.raw_set.size
       return false if !superset?(other)
 
-      length > other.length
+      size > other.size
     end
   end
 end
