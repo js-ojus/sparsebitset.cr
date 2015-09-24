@@ -111,6 +111,8 @@ module SparseBitSet
   # SbsIterator provides iteration over a sparse bitset.
   class SbsIterator
     include Iterator(UInt64)
+    include SparseBitSet
+
     def initialize(@set : Array(Block))
       @curr = 0_u64
     end
@@ -159,6 +161,7 @@ module SparseBitSet
   # integers.
   struct BitSet
     include Iterable
+    include SparseBitSet
 
     def initialize
       @set = Array(Block).new()

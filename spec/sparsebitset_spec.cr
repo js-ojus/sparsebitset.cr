@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-include SparseBitSet
+alias BitSet = SparseBitSet::BitSet
 
 describe SparseBitSet do
   describe "basic operations" do
