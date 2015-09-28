@@ -299,7 +299,7 @@ module SparseBitSet
           case
           when sel.offset < oel.offset
             {% if params[:sfull] %}
-            res.raw_set << sel
+              res.raw_set << sel
             {% end %}
             i += 1
 
@@ -309,20 +309,20 @@ module SparseBitSet
 
           else
             {% if params[:ofull] %}
-            res.raw_set << oel
+              res.raw_set << oel
             {% end %}
             j += 1
           end
         end
         {% if params[:sfull] %}
-        res.raw_set.concat(@set[i..-1])
+          res.raw_set.concat(@set[i..-1])
         {% end %}
         {% if params[:ofull] %}
-        res.raw_set.concat(other.raw_set[j..-1])
+          res.raw_set.concat(other.raw_set[j..-1])
         {% end %}
 
         {% if params[:prune] %}
-        res.prune()
+          res.prune()
         {% end %}
         res
       end
@@ -347,244 +347,134 @@ module SparseBitSet
     def_set_op(:symmetric_difference,
                {op: "^", pre_op: "", sfull: true, ofull: true, prune: true})
 
+    # def_inp_set_op generates several user-visible set operations.
+    macro def_inp_set_op(name, params)
+      def {{ name.id }}!(other : BitSet) : BitSet
+        return self if other.nil?
+
+        i, j = 0, 0
+        while i < @set.size && j < other.raw_set.size
+          sel, oel = @set[i], other.raw_set[j]
+
+          case
+          when sel.offset < oel.offset
+            {% if params[:empty] %}
+              sel.bits = 0_u64
+              @set[i] = sel
+            {% end %}
+            i += 1
+
+          when sel.offset == oel.offset
+            sel.bits {{ params[:op].id }}= {{ params[:pre_op].id }}oel.bits
+            @set[i] = sel
+            i, j = i+1, j+1
+
+          else
+            {% if params[:full] %}
+              @set.insert(i, oel)
+              i += 1
+            {% end %}
+            j += 1
+          end
+        end
+        {% if params[:empty] %}
+          while i < @set.size
+            sel = @set[i]
+            sel.bits = 0_u64
+            @set[i] = sel
+            i += 1
+          end
+        {% elsif params[:full] %}
+          @set.concat(other.raw_set[j..-1])
+        {% end %}
+
+        prune()
+        self
+      end
+    end
+
     # difference! performs an in-place 'set minus' of the given bitset
     # from this bitset.
-    def difference!(other : BitSet) : BitSet
-      return self if other.nil?
+    def_inp_set_op(:difference,
+                  {op: "&", pre_op: "~", empty: false, full: false})
 
-      i, j = 0, 0
-      while i < @set.size && j < other.raw_set.size
-        sel, oel = @set[i], other.raw_set[j]
+    # intersection! performs a 'set intersection' of the given bitset with
+    # this bitset, updating this bitset itself.
+    def_inp_set_op(:intersection,
+                   {op: "&", pre_op: "", empty: true, full: false})
 
-        case
-        when sel.offset < oel.offset
-          i += 1
+    # union! performs a 'set union' of the given bitset with this bitset,
+    # updating this bitset itself.
+    def_inp_set_op(:union,
+                   {op: "|", pre_op: "", empty: false, full: true})
 
-        when sel.offset == oel.offset
-          sel.bits &= ~oel.bits
-          @set[i] = sel
-          i, j = i+1, j+1
+    # symmetric_difference! performs a 'set symmetric difference' of the
+    # given bitset with this bitset, updating this bitset itself.
+    def_inp_set_op(:symmetric_difference,
+                   {op: "^", pre_op: "", empty: false, full: true})
 
-        else
-          j += 1
+    # def_set_count generates several user-visible set operations.
+    macro def_set_count(name, params)
+      def {{ name.id }}_cardinality(other : BitSet) : UInt64
+        return self.size if other.nil?
+
+        c = 0_u64
+        i, j = 0, 0
+        while i < @set.size && j < other.raw_set.size
+          sel, oel = @set[i], other.raw_set[j]
+
+          case
+          when sel.offset < oel.offset
+            {% if params[:sfull] %}
+              c += popcount(sel.bits)
+            {% end %}
+            i += 1
+
+          when sel.offset == oel.offset
+            c += popcount(@set[i].bits {{ params[:op].id }} {{ params[:pre_op].id }}oel.bits)
+            i, j = i+1, j+1
+
+          else
+            {% if params[:ofull] %}
+              c += popcount(oel.bits)
+            {% end %}
+            j += 1
+          end
         end
-      end
+        {% if params[:sfull] %}
+          @set[i..-1].each { |el| c += popcount(el.bits)}
+        {% end %}
+        {% if params[:ofull] %}
+          other.raw_set[j..-1].each { |el| c += popcount(el.bits) }
+        {% end %}
 
-      prune()
-      self
+        c
+      end
     end
 
     # difference_cardinality answers the cardinality of the difference set
     # between this bitset and the given bitset.  This does *not* construct
     # an intermediate bitset.
-    def difference_cardinality(other : BitSet) : UInt64
-      return self.size if other.nil?
-
-      c = 0_u64
-      i, j = 0, 0
-      while i < @set.size && j < other.raw_set.size
-        sel, oel = @set[i], other.raw_set[j]
-
-        case
-        when sel.offset < oel.offset
-          c += popcount(sel.bits)
-          i += 1
-
-        when sel.offset == oel.offset
-          c += popcount(@set[i].bits & ~oel.bits)
-          i, j = i+1, j+1
-
-        else
-          j += 1
-        end
-      end
-      @set[i..-1].each { |el| c+= popcount(el.bits) }
-
-      c
-    end
-
-    # intersection! performs a 'set intersection' of the given bitset with
-    # this bitset, updating this bitset itself.
-    def intersection!(other : BitSet) : BitSet
-      return self if other.nil?
-
-      i, j = 0, 0
-      while i < @set.size && j < other.raw_set.size
-        sel, oel = @set[i], other.raw_set[j]
-
-        case
-        when sel.offset < oel.offset
-          sel.bits = 0_u64
-          @set[i] = sel
-          i += 1
-
-        when sel.offset == oel.offset
-          sel.bits &= oel.bits
-          @set[i] = sel
-          i, j = i+1, j+1
-
-        else
-          j += 1
-        end
-      end
-      while i < @set.size
-        sel = @set[i]
-        sel.bits = 0_u64
-        @set[i] = sel
-        i += 1
-      end
-
-      prune()
-      self
-    end
+    def_set_count(:difference,
+                  {op: "&", pre_op: "~", sfull: true, ofull: false})
 
     # intersection_cardinality answers the cardinality of the intersection
     # set between this bitset and the given bitset.  This does *not*
     # construct an intermediate bitset.
-    def intersection_cardinality(other : BitSet) : UInt64
-      return 0_u64 if other.nil?
-
-      c = 0_u64
-      i, j = 0, 0
-      while i < @set.size && j < other.raw_set.size
-        sel, oel = @set[i], other.raw_set[j]
-
-        case
-        when sel.offset < oel.offset
-          i += 1
-
-        when sel.offset == oel.offset
-          c += popcount(@set[i].bits & oel.bits)
-          i, j = i+1, j+1
-
-        else
-          j += 1
-        end
-      end
-
-      c
-    end
-
-    # union! performs a 'set union' of the given bitset with this bitset,
-    # updating this bitset itself.
-    def union!(other : BitSet) : BitSet
-      return self if other.nil?
-
-      i, j = 0, 0
-      loop do
-        break if i >= @set.size || j >= other.raw_set.size
-
-        sel, oel = @set[i], other.raw_set[j]
-
-        case
-        when sel.offset < oel.offset
-          i += 1
-
-        when sel.offset == oel.offset
-          sel.bits |= oel.bits
-          @set[i] = sel
-          i, j = i+1, j+1
-
-        else
-          @set.insert(i, oel)
-          i, j = i+1, j+1
-        end
-      end
-      @set.concat(other.raw_set[j..-1])
-
-      self
-    end
+    def_set_count(:intersection,
+                  {op: "&", pre_op: "", sfull: false, ofull: false})
 
     # union_cardinality answers the cardinality of the union
     # set between this bitset and the given bitset.  This does *not*
     # construct an intermediate bitset.
-    def union_cardinality(other : BitSet) : UInt64
-      return self.size if other.nil?
-
-      c = 0_u64
-      i, j = 0, 0
-      while i < @set.size && j < other.raw_set.size
-        sel, oel = @set[i], other.raw_set[j]
-
-        case
-        when sel.offset < oel.offset
-          c += popcount(sel.bits)
-          i += 1
-
-        when sel.offset == oel.offset
-          c += popcount(@set[i].bits | oel.bits)
-          i, j = i+1, j+1
-
-        else
-          c += popcount(oel.bits)
-          j += 1
-        end
-      end
-      @set[i..-1].each { |el| c += popcount(el.bits) }
-      other.raw_set[j..-1].each { |el| c += popcount(el.bits) }
-
-      c
-    end
-
-    # symmetric_difference! performs a 'set symmetric difference' of the
-    # given bitset with this bitset, updating this bitset itself.
-    def symmetric_difference!(other : BitSet) : BitSet
-      return self if other.nil?
-
-      i, j = 0, 0
-      while i < @set.size && j < other.raw_set.size
-        sel, oel = @set[i], other.raw_set[j]
-
-        case
-        when sel.offset < oel.offset
-          i += 1
-
-        when sel.offset == oel.offset
-          sel.bits ^= oel.bits
-          @set[i] = sel
-          i, j = i+1, j+1
-
-        else
-          @set.insert(i, oel)
-          j += 1
-        end
-      end
-      @set.concat(other.raw_set[j..-1])
-
-      prune()
-      self
-    end
+    def_set_count(:union,
+                  {op: "|", pre_op: "", sfull: true, ofull: true})
 
     # symmetric_difference_cardinality answers the cardinality of the
     # symmetric_difference set between this bitset and the given bitset.
     # This does *not* construct an intermediate bitset.
-    def symmetric_difference_cardinality(other : BitSet) : UInt64
-      return self.size if other.nil?
-
-      c = 0_u64
-      i, j = 0, 0
-      while i < @set.size && j < other.raw_set.size
-        sel, oel = @set[i], other.raw_set[j]
-
-        case
-        when sel.offset < oel.offset
-          c += popcount(sel.bits)
-          i += 1
-
-        when sel.offset == oel.offset
-          c += popcount(@set[i].bits ^ oel.bits)
-          i, j = i+1, j+1
-
-        else
-          c += popcount(oel.bits)
-          j += 1
-        end
-      end
-      @set[i..-1].each { |el| c += popcount(el.bits) }
-      other.raw_set[j..-1].each { |el| c += popcount(el.bits) }
-
-      c
-    end
+    def_set_count(:symmetric_difference,
+                  {op: "^", pre_op: "", sfull: true, ofull: true})
 
     # complement answers a bit-wise complement of this bitset, up to the
     # highest bit set in this bitset.

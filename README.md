@@ -28,12 +28,13 @@ The original motivation for `sparsebitset` comes from a need to store custom ind
 
 ### Installation
 
-Add this line to your application's `Projectfile`:
+Add this line to your application's `shard.yml`:
 
-```crystal
-deps do
-  github "js-ojus/sparsebitset.cr"
-end
+```yaml
+dependencies:
+  sparsebitset:
+    github: js-ojus/sparsebitset.cr
+    version: ">= 0.5.0"
 ```
 
 ### Usage

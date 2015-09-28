@@ -715,6 +715,40 @@ describe SparseBitSet do
       end
       ary.should eq([1_u64, 10_u64, 100_u64, 1000_u64])
     end
+
+    it "should answer a full symmetric_difference" do
+      s = BitSet.new()
+      s.set(1_u64)
+      t = BitSet.new()
+      t.set(10_u64)
+      t.set(100_u64)
+      t.set(1000_u64)
+      s.symmetric_difference!(t)
+
+      ary = [] of UInt64
+      i = s.each
+      while (el = i.next) != Iterator::Stop::INSTANCE
+        ary << el as UInt64
+      end
+      ary.should eq([1_u64, 10_u64, 100_u64, 1000_u64])
+    end
+
+    it "should answer a full symmetric_difference" do
+      s = BitSet.new()
+      s.set(10_u64)
+      s.set(100_u64)
+      s.set(1000_u64)
+      t = BitSet.new()
+      t.set(1_u64)
+      s.symmetric_difference!(t)
+
+      ary = [] of UInt64
+      i = s.each
+      while (el = i.next) != Iterator::Stop::INSTANCE
+        ary << el as UInt64
+      end
+      ary.should eq([1_u64, 10_u64, 100_u64, 1000_u64])
+    end
   end
 
   describe "complement" do
