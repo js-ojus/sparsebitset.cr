@@ -250,9 +250,7 @@ describe SparseBitSet do
       s = BitSet.new()
       t = BitSet.new()
       w = s.difference(t)
-      if w
-        w.size.should eq(0)
-      end
+      w.size.should eq(0)
     end
 
     it "should result in a copy of the original set" do
@@ -262,9 +260,7 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = BitSet.new()
       w = s.difference(t)
-      if w
-        w.size.should eq(3)
-      end
+      w.size.should eq(3)
     end
 
     it "should result in length of the original set" do
@@ -284,9 +280,7 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       w = s.difference(t)
-      if w
-        w.size.should eq(2)
-      end
+      w.size.should eq(2)
     end
 
     it "should result in smaller length" do
@@ -307,14 +301,12 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       w = s.difference(t)
-      if w
-        ary = [] of UInt64
-        i = w.each
-        while (el = i.next) != Iterator::Stop::INSTANCE
-          ary << el as UInt64
-        end
-        ary.should eq([1_u64, 1000_u64])
+      ary = [] of UInt64
+      i = w.each
+      while (el = i.next) != Iterator::Stop::INSTANCE
+        ary << el as UInt64
       end
+      ary.should eq([1_u64, 1000_u64])
     end
 
     it "should answer null set" do
@@ -368,9 +360,7 @@ describe SparseBitSet do
       s = BitSet.new()
       t = BitSet.new()
       w = s.intersection(t)
-      if w
-        w.size.should eq(0)
-      end
+      w.size.should eq(0)
     end
 
     it "should result in zero length" do
@@ -380,9 +370,7 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = BitSet.new()
       w = s.intersection(t)
-      if w
-        w.size.should eq(0)
-      end
+      w.size.should eq(0)
     end
 
     it "should result in zero length" do
@@ -402,9 +390,7 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       w = s.intersection(t)
-      if w
-        w.size.should eq(1)
-      end
+      w.size.should eq(1)
     end
 
     it "should result in smaller length" do
@@ -425,14 +411,12 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       w = s.intersection(t)
-      if w
-        ary = [] of UInt64
-        i = w.each
-        while (el = i.next) != Iterator::Stop::INSTANCE
-          ary << el as UInt64
-        end
-        ary.should eq([100_u64])
+      ary = [] of UInt64
+      i = w.each
+      while (el = i.next) != Iterator::Stop::INSTANCE
+        ary << el as UInt64
       end
+      ary.should eq([100_u64])
     end
 
     it "should answer null set" do
@@ -486,9 +470,7 @@ describe SparseBitSet do
       s = BitSet.new()
       t = BitSet.new()
       w = s.union(t)
-      if w
-        w.size.should eq(0)
-      end
+      w.size.should eq(0)
     end
 
     it "should result in a length of the original set" do
@@ -498,9 +480,7 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = BitSet.new()
       w = s.union(t)
-      if w
-        w.size.should eq(3)
-      end
+      w.size.should eq(3)
     end
 
     it "should result in a length of the original set" do
@@ -520,9 +500,7 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       w = s.union(t)
-      if w
-        w.size.should eq(3)
-      end
+      w.size.should eq(3)
     end
 
     it "should result in a length of the original set" do
@@ -543,14 +521,12 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(10_u64)
       w = s.union(t)
-      if w
-        ary = [] of UInt64
-        i = w.each
-        while (el = i.next) != Iterator::Stop::INSTANCE
-          ary << el as UInt64
-        end
-        ary.should eq([1_u64, 10_u64, 100_u64, 1000_u64])
+      ary = [] of UInt64
+      i = w.each
+      while (el = i.next) != Iterator::Stop::INSTANCE
+        ary << el as UInt64
       end
+      ary.should eq([1_u64, 10_u64, 100_u64, 1000_u64])
     end
 
     it "should answer null set" do
@@ -604,9 +580,7 @@ describe SparseBitSet do
       s = BitSet.new()
       t = BitSet.new()
       w = s.symmetric_difference(t)
-      if w
-        w.size.should eq(0)
-      end
+      w.size.should eq(0)
     end
 
     it "should result in a length of the original set" do
@@ -616,9 +590,7 @@ describe SparseBitSet do
       s.set(1000_u64)
       t = BitSet.new()
       w = s.symmetric_difference(t)
-      if w
-        w.size.should eq(3)
-      end
+      w.size.should eq(3)
     end
 
     it "should result in a length of the original set" do
@@ -638,9 +610,7 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(100_u64)
       w = s.symmetric_difference(t)
-      if w
-        w.size.should eq(2)
-      end
+      w.size.should eq(2)
     end
 
     it "should result in a length of the original set" do
@@ -661,14 +631,12 @@ describe SparseBitSet do
       t = BitSet.new()
       t.set(10_u64)
       w = s.symmetric_difference(t)
-      if w
-        ary = [] of UInt64
-        i = w.each
-        while (el = i.next) != Iterator::Stop::INSTANCE
-          ary << el as UInt64
-        end
-        ary.should eq([1_u64, 10_u64, 100_u64, 1000_u64])
+      ary = [] of UInt64
+      i = w.each
+      while (el = i.next) != Iterator::Stop::INSTANCE
+        ary << el as UInt64
       end
+      ary.should eq([1_u64, 10_u64, 100_u64, 1000_u64])
     end
 
     it "should answer null set" do

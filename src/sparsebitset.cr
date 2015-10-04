@@ -270,7 +270,6 @@ module SparseBitSet
     # `==` answers `true` iff the given bitset has the same bits set as
     # those of this bitset.
     def ==(other : BitSet) : Bool
-      return false if other.nil?
       return false if @set.size != other.raw_set.size
       return true if @set.size == 0
 
@@ -288,9 +287,7 @@ module SparseBitSet
 
     # def_set_op generates several user-visible set operations.
     macro def_set_op(name, params)
-      def {{ name.id }}(other : BitSet) : BitSet | Nil
-        return nil if other.nil?
-
+      def {{ name.id }}(other : BitSet) : BitSet
         res = BitSet.new()
         i, j = 0, 0
         while i < @set.size && j < other.raw_set.size
@@ -350,8 +347,6 @@ module SparseBitSet
     # def_inp_set_op generates several user-visible set operations.
     macro def_inp_set_op(name, params)
       def {{ name.id }}!(other : BitSet) : BitSet
-        return self if other.nil?
-
         i, j = 0, 0
         while i < @set.size && j < other.raw_set.size
           sel, oel = @set[i], other.raw_set[j]
@@ -416,8 +411,6 @@ module SparseBitSet
     # def_set_count generates several user-visible set operations.
     macro def_set_count(name, params)
       def {{ name.id }}_cardinality(other : BitSet) : UInt64
-        return self.size if other.nil?
-
         c = 0_u64
         i, j = 0, 0
         while i < @set.size && j < other.raw_set.size
@@ -566,7 +559,7 @@ module SparseBitSet
     # superset? answers `true` if this bitset includes all of the elements
     # of the given bitset.
     def superset?(other : BitSet) : Bool
-      return true if other.nil? || other.empty?
+      return true if other.empty?
 
       other.difference_cardinality(self) == 0
     end
